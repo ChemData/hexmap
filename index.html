@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script type="text/javascript" src="scripts/drawing.js"></script>
+    <title>The Display</title>
+</head>
+
+<body onload="setup(); draw_random_hexes(50, 35, 30, document.querySelector('.myCanvas').getContext('2d'))">
+<canvas class="myCanvas" style="boarder:1px solid #ffffff;">
+  <p>Your browser doesn't support canvas.</p>
+</canvas>
+</body>
+<script>
+    function setup() {
+        const canvas = document.querySelector('.myCanvas');
+        const width = canvas.width = window.innerWidth;
+        const height = canvas.height = window.innerHeight;
+    }
+</script>
+</html>
