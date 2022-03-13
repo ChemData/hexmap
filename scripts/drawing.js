@@ -27,3 +27,4 @@ function draw_random_hexes(cols, rows, side_length, context) {
         }
     }
 }
+
