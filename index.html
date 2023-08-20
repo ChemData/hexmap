@@ -1,21 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <script type="text/javascript" src="scripts/drawing.js"></script>
-    <title>The Display</title>
-</head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hexagons Animation</title>
 
-<body onload="setup(); draw_random_hexes(50, 35, 30, document.querySelector('.myCanvas').getContext('2d'))">
-<canvas class="myCanvas" style="boarder:1px solid #ffffff;">
-  <p>Your browser doesn't support canvas.</p>
-</canvas>
+</head>
+<header>
+  <div id="nav_buttons">
+    <button type="button" id="zoom_in">Zoom In</button>
+    <button type="button" id="zoom_out">Zoom Out</button>
+    <button type="button" id="add_left">Add Left</button>
+    <button type="button" id="add_right">Add Right</button>
+    <button type="button" id="add_top">Add Top</button>
+    <button type="button" id="add_bottom">Add Bottom</button>
+  </div>
+  <div id="draw_buttons">
+  </div>
+  <div id="display_buttons">
+    <input type="checkbox" id="coordinates_checkbox" name="coordinates_checkbox">
+    <label for="coordinates_checkbox">Show Coordinates</label>
+    <input type="checkbox" id="terrain_checkbox" name="terrain_checkbox" checked>
+    <label for="terrain_checkbox">Show Terrain</label>
+    <input type="checkbox" id="player_view_checkbox">
+    <label for="player_view_checkbox">Player View</label>
+    <button type="button" id="player_visibility">Player Visible</button>
+    <button type="button" id="dm_visibility">DM Visible</button>
+  </div>
+</header>
+<body>
+  <script src="src/hexagons.js" type="module"></script>
+  <!-- Add a canvas element to display the animation -->
+  <canvas id="hexcanvas" width="800" height="600"></canvas>
+
+
+  <!-- Include the 'hexagons.ts' JavaScript file -->
 </body>
-<script>
-    function setup() {
-        const canvas = document.querySelector('.myCanvas');
-        const width = canvas.width = window.innerWidth;
-        const height = canvas.height = window.innerHeight;
-    }
-</script>
 </html>

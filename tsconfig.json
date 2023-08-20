@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
         "outDir": "src",
-        "lib": ["ES5", "ES6", "ES7", "DOM"],
+        "lib": ["ES5", "ES6", "ES7", "DOM", "esnext"],
         "downlevelIteration": true
     },
 "include": ["ts_src"]
