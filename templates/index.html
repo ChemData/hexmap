@@ -1,13 +1,42 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Flask Image App</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hexmap display</title>
+
 </head>
+<header>
+  <div id="nav_buttons">
+    <button type="button" id="zoom_in">Zoom In</button>
+    <button type="button" id="zoom_out">Zoom Out</button>
+    <button type="button" id="add_left">Add Left</button>
+    <button type="button" id="add_right">Add Right</button>
+    <button type="button" id="add_top">Add Top</button>
+    <button type="button" id="add_bottom">Add Bottom</button>
+    <button type="button" id="save">Save</button>
+    <button type="button" id="load">Load</button>
+  </div>
+  <div id="draw_buttons">
+  </div>
+  <div id="display_buttons">
+    <input type="checkbox" id="coordinates_checkbox" name="coordinates_checkbox">
+    <label for="coordinates_checkbox">Show Coordinates</label>
+    <input type="checkbox" id="terrain_checkbox" name="terrain_checkbox" checked>
+    <label for="terrain_checkbox">Show Terrain</label>
+    <input type="checkbox" id="player_view_checkbox">
+    <label for="player_view_checkbox">Player View</label>
+    <button type="button" id="player_visibility">Player Visible</button>
+    <button type="button" id="dm_visibility">DM Visible</button>
+    <button type="button" id="roll_combat">Roll Combat</button>
+  </div>
+  <div id="hex_contents">
+    <input
+  </div>
+</header>
 <body>
-    <img id="generated-image" src="{{ image_url }}" alt="Generated Image">
-    <form method="post">
-        <input type="submit" name="open" value="Open"/>
-        <input type="submit" name="close" value="Close"/>
-    </form>
+  <canvas id="hexcanvas" width="800" height="600"></canvas>
+  <script src="../static/js/code.jquery.com_jquery-3.7.0.js"></script>
+  <script type="module" src="../static/js/hexagons.js"></script>
 </body>
 </html>

@@ -1,4 +1,3 @@
-
 namespace HexDisplay {
     let HEX_HEIGHT = 3 ** 0.5
     let TERRAIN_COLORS = {
@@ -9,19 +8,23 @@ namespace HexDisplay {
         "empty": "#ffffff"
     }
 
-    type CursorDraw = {
+    let CURRENT_CURSOR: (null | string) = null;
+
+    type Brush = {
         property: (string | null)
         value: (string | boolean)
     }
-    let CURRENT_DRAW: CursorDraw = {'property': null, 'value': false}
+    let CURRENT_BRUSH: Brush = {'property': null, 'value': false}
 
     type Hex = {
         terrain: string,
-        player_visible: boolean
+        player_visible: boolean,
+        primary_creature: (string | null),
+        climate: (string | null)
     }
 
     function EmptyHex(): Hex {
-        return {'terrain': 'empty', 'player_visible': false}
+        return {'terrain': 'empty', 'player_visible': false, 'primary_creature': null, 'climate': null}
     }
 
     function RandomHex(): Hex {
@@ -148,7 +151,6 @@ namespace HexDisplay {
     }
 
     function DisplayGrid(grid: HexGrid, view: HexGridView, canvas: HTMLCanvasElement): void {
-        let ctx = canvas.getContext('2d')
         clearHexCanvas()
         for (let row = 0; row < grid.array.length; row++) {
             for (let col = 0; col < grid.array[0].length; col++) {
@@ -264,6 +266,13 @@ namespace HexDisplay {
         console.log(pixel_to_normal(pt))
     }
 
+    function ClickCoordinates(event) {
+        let bounds = CANVAS.getBoundingClientRect();
+        let pt = {'x': event.clientX - bounds.left, 'y': event.clientY - bounds.top}
+        let coordinates = pixel_to_normal(pt)
+        return coordinates
+    }
+
     function shape(array: any[][]) {
         return [array[0].length, array.length];
     }
@@ -317,6 +326,23 @@ namespace HexDisplay {
         context.clearRect(0, 0, CANVAS.width, CANVAS.height)
     }
 
+    function loadSavedMap(){
+        $.get(
+            'load',
+            {},
+            function(data, status){
+                data = JSON.parse(data)
+                if (data == false){
+                    alert('There is no saved map.')
+                }
+                else {
+                    HEX_GRID = data
+                    DisplayGrid(HEX_GRID, VIEW, CANVAS)
+                }
+            }
+        )
+    }
+
     function addTerrainButtons() {
         let draw_button_div = document.getElementById("draw_buttons");
         for (let i = 0; i < Object.keys(TERRAIN_COLORS).length; i++) {
@@ -328,8 +354,9 @@ namespace HexDisplay {
             button.appendChild(text);
             draw_button_div.appendChild(button);
             button.addEventListener('click', function () {
-                CURRENT_DRAW.property = 'terrain';
-                CURRENT_DRAW.value = terrain_type;
+                CURRENT_BRUSH.property = 'terrain';
+                CURRENT_BRUSH.value = terrain_type;
+                CURRENT_CURSOR = 'brush'
             });
 
         }
@@ -338,35 +365,30 @@ namespace HexDisplay {
 
 
     let HEX_GRID = RandomHexGrid(20, 30);
+    loadSavedMap();
     let CANVAS = <HTMLCanvasElement>document.getElementById("hexcanvas");
     let VIEW = DefaultView(30)
     DisplayGrid(HEX_GRID, VIEW, CANVAS)
     addTerrainButtons()
 
     // Event Listeners
-    let zoom_in_button = document.getElementById('zoom_in')
-    zoom_in_button.addEventListener('click', zoomIn);
+    document.getElementById('zoom_in').addEventListener('click', zoomIn);
 
-    let zoom_out_button = document.getElementById('zoom_out')
-    zoom_out_button.addEventListener('click', zoomOut);
+    document.getElementById('zoom_out').addEventListener('click', zoomOut);
 
-    let add_left_button = document.getElementById('add_left')
-    add_left_button.addEventListener('click', function () {
+    document.getElementById('add_left').addEventListener('click', function () {
         AddColumns(HEX_GRID, 1, true);
     });
 
-    let add_right_button = document.getElementById('add_right')
-    add_right_button.addEventListener('click', function () {
+    document.getElementById('add_right').addEventListener('click', function () {
         AddColumns(HEX_GRID, 1, false);
     });
 
-    let add_top_button = document.getElementById('add_top')
-    add_top_button.addEventListener('click', function () {
+    document.getElementById('add_top').addEventListener('click', function () {
         AddRows(HEX_GRID, 1, true);
     });
 
-    let add_bottom_button = document.getElementById('add_bottom')
-    add_bottom_button.addEventListener('click', function () {
+    document.getElementById('add_bottom').addEventListener('click', function () {
         AddRows(HEX_GRID, 1, false)
     });
 
@@ -382,17 +404,31 @@ namespace HexDisplay {
         }
     })
 
+    CANVAS.addEventListener('mouseup', function(event){
+        if (CURRENT_CURSOR == 'encounter') {
+            let coordinates = ClickCoordinates(event)
+            let hex = HEX_GRID.array[coordinates.row][coordinates.col];
+            $.post('encounter',{
+                'primary_creature': hex.primary_creature,
+                'terrain': hex.terrain
+                },
+            function(data, status){
+            alert(data)
+            })
+        }
+
+    })
+
     CANVAS.addEventListener('mousemove', function (event) {
         if (event.buttons == 1) {
-            // Nothing is selected to draw with, so you shouldn't make changes
-            if (CURRENT_DRAW == null) {
+            // Nothing is selected with the cursor, so you shouldn't make changes
+            if (CURRENT_CURSOR == null) {
                 return
+            } else if (CURRENT_CURSOR == 'brush') {
+                let coordinates = ClickCoordinates(event)
+                HEX_GRID.array[coordinates.row][coordinates.col][CURRENT_BRUSH.property] = CURRENT_BRUSH.value
+                DisplayGrid(HEX_GRID, VIEW, CANVAS)
             }
-            let bounds = CANVAS.getBoundingClientRect();
-            let pt = {'x': event.clientX - bounds.left, 'y': event.clientY - bounds.top}
-            let coordinates = pixel_to_normal(pt)
-            HEX_GRID.array[coordinates.row][coordinates.col][CURRENT_DRAW.property] = CURRENT_DRAW.value
-            DisplayGrid(HEX_GRID, VIEW, CANVAS)
         }
     });
 
@@ -426,20 +462,29 @@ namespace HexDisplay {
         DisplayGrid(HEX_GRID, VIEW, CANVAS);
     })
 
-    let player_visibility = document.getElementById('player_visibility')
-    player_visibility.addEventListener('click', function(){
-        CURRENT_DRAW.property = 'player_visible'
-        CURRENT_DRAW.value = true
+    document.getElementById('player_visibility').addEventListener('click', function(){
+        CURRENT_BRUSH.property = 'player_visible'
+        CURRENT_BRUSH.value = true
+        CURRENT_CURSOR = 'brush'
     })
-    let dm_visibility = document.getElementById('dm_visibility')
-    dm_visibility.addEventListener('click', function(){
-        CURRENT_DRAW.property = 'player_visible'
-        CURRENT_DRAW.value = false
+
+    document.getElementById('dm_visibility').addEventListener('click', function(){
+        CURRENT_BRUSH.property = 'player_visible'
+        CURRENT_BRUSH.value = false
+        CURRENT_CURSOR = 'brush'
     })
+
+    document.getElementById('roll_combat').addEventListener('click', function(){
+        CURRENT_CURSOR = 'encounter'
+    })
+
+    document.getElementById('save').addEventListener('click', function(){
+        $.post(
+            'save',
+            {'hex_map': JSON.stringify(HEX_GRID)}
+        )
+    })
+
+    document.getElementById('load').addEventListener('click', loadSavedMap)
 }
-
-
-
-
-
 

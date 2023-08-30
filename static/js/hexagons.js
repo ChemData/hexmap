@@ -1,56 +1,54 @@
 var HexDisplay;
 (function (HexDisplay) {
-    var HEX_HEIGHT = Math.pow(3, 0.5);
-    var TERRAIN_COLORS = {
+    let HEX_HEIGHT = Math.pow(3, 0.5);
+    let TERRAIN_COLORS = {
         "water": "#0076ec",
         "grass": "#55ff8a",
         "mountains": "#777777",
         "desert": "#ece95a",
         "empty": "#ffffff"
     };
-    var CURRENT_DRAW = { 'property': null, 'value': false };
+    let CURRENT_CURSOR = null;
+    let CURRENT_BRUSH = { 'property': null, 'value': false };
     function EmptyHex() {
-        return { 'terrain': 'empty', 'player_visible': false };
+        return { 'terrain': 'empty', 'player_visible': false, 'primary_creature': null, 'climate': null };
     }
     function RandomHex() {
-        var new_hex = EmptyHex();
+        let new_hex = EmptyHex();
         new_hex.terrain = getRandomElement(Object.keys(TERRAIN_COLORS));
         return new_hex;
     }
     function RandomColor() {
-        var r = Math.floor(Math.random() * 256).toString(16).padStart(2, '0');
-        var g = Math.floor(Math.random() * 256).toString(16).padStart(2, '0');
-        var b = Math.floor(Math.random() * 256).toString(16).padStart(2, '0');
+        let r = Math.floor(Math.random() * 256).toString(16).padStart(2, '0');
+        let g = Math.floor(Math.random() * 256).toString(16).padStart(2, '0');
+        let b = Math.floor(Math.random() * 256).toString(16).padStart(2, '0');
         return '#' + r + g + b;
     }
-    var getRandomElement = function (arr) {
-        return arr[Math.floor(Math.random() * arr.length)];
-    };
+    const getRandomElement = (arr) => arr[Math.floor(Math.random() * arr.length)];
     function DrawHex(x, y, hexagon, grid_view, coordinate_label, ctx) {
         if (grid_view.player_view && !hexagon.player_visible) {
             return;
         }
-        var color = TERRAIN_COLORS['empty'];
+        let color = TERRAIN_COLORS['empty'];
         if (grid_view.show_terrain) {
             color = TERRAIN_COLORS[hexagon.terrain];
         }
         DrawHexagon(x, y, grid_view.scale, color, ctx);
         if (grid_view.show_coordinates) {
-            ctx.font = "".concat(Math.floor(0.3 * grid_view.scale), "px Arial");
+            ctx.font = `${Math.floor(0.3 * grid_view.scale)}px Arial`;
             ctx.fillStyle = 'black';
             ctx.fillText(coordinate_label, x - grid_view.scale * 0.4, y + grid_view.scale * 0.4 * HEX_HEIGHT);
         }
     }
-    function DrawHexagon(x, y, s, color, ctx, border_color) {
-        if (border_color === void 0) { border_color = 'black'; }
-        var half_height = Math.pow(3, 0.5) / 2;
-        var vertexes = [
+    function DrawHexagon(x, y, s, color, ctx, border_color = 'black') {
+        let half_height = Math.pow(3, 0.5) / 2;
+        let vertexes = [
             [-0.5, -half_height], [0.5, -half_height], [1, 0], [0.5, half_height],
             [-0.5, half_height], [-1, 0]
         ];
         ctx.beginPath();
         ctx.moveTo(x + s * vertexes[0][0], y + s * vertexes[0][1]);
-        for (var i = 1; i < vertexes.length; i++) {
+        for (let i = 1; i < vertexes.length; i++) {
             ctx.lineTo(x + s * vertexes[i][0], y + s * vertexes[i][1]);
         }
         ctx.closePath();
@@ -60,10 +58,10 @@ var HexDisplay;
         ctx.fill();
     }
     function EmptyHexGrid(n_rows, n_cols) {
-        var array = Array(0);
-        for (var row = 0; row < n_rows; row++) {
-            var new_row = Array(0);
-            for (var col = 0; col < n_cols; col++) {
+        let array = Array(0);
+        for (let row = 0; row < n_rows; row++) {
+            let new_row = Array(0);
+            for (let col = 0; col < n_cols; col++) {
                 new_row = new_row.concat([EmptyHex()]);
             }
             array = array.concat([new_row]);
@@ -71,10 +69,10 @@ var HexDisplay;
         return { 'array': array, 'offset': [0, 0], 'first_is_up': true };
     }
     function RandomHexGrid(n_rows, n_cols) {
-        var array = Array(0);
-        for (var row = 0; row < n_rows; row++) {
-            var new_row = Array(0);
-            for (var col = 0; col < n_cols; col++) {
+        let array = Array(0);
+        for (let row = 0; row < n_rows; row++) {
+            let new_row = Array(0);
+            for (let col = 0; col < n_cols; col++) {
                 new_row = new_row.concat([RandomHex()]);
             }
             array = array.concat([new_row]);
@@ -86,7 +84,7 @@ var HexDisplay;
             array.offset[1] -= n_rows;
         }
         if (n_rows > 0) {
-            var new_rows = EmptyHexGrid(n_rows, array.array[0].length).array;
+            let new_rows = EmptyHexGrid(n_rows, array.array[0].length).array;
             if (top) {
                 array.array = new_rows.concat(array.array);
             }
@@ -108,7 +106,7 @@ var HexDisplay;
             array.offset[0] -= n_cols;
         }
         if (n_cols > 0) {
-            for (var i = 0; i < array.array.length; i++) {
+            for (let i = 0; i < array.array.length; i++) {
                 if (left) {
                     array.array[i] = Array(n_cols).fill(EmptyHex()).concat(array.array[i]);
                 }
@@ -118,7 +116,7 @@ var HexDisplay;
             }
         }
         else if (n_cols < 0) {
-            for (var i = 0; i < array.array.length; i++) {
+            for (let i = 0; i < array.array.length; i++) {
                 if (left) {
                     array.array[i] = array.array[i].slice(-n_cols, array.array[i].length);
                 }
@@ -129,21 +127,19 @@ var HexDisplay;
         }
     }
     function DisplayGrid(grid, view, canvas) {
-        var ctx = canvas.getContext('2d');
         clearHexCanvas();
-        for (var row = 0; row < grid.array.length; row++) {
-            for (var col = 0; col < grid.array[0].length; col++) {
+        for (let row = 0; row < grid.array.length; row++) {
+            for (let col = 0; col < grid.array[0].length; col++) {
                 DisplayHex(grid, { 'col': col, 'row': row }, view, canvas);
             }
         }
     }
-    function DisplayHex(grid, coordinates, view, canvas, clear_first) {
-        if (clear_first === void 0) { clear_first = false; }
-        var ctx = canvas.getContext('2d');
-        var x_center = 3 / 2 * coordinates.col * view.scale + view.offset_x;
-        var offset_down = (Boolean(coordinates.col % 2) == grid.first_is_up);
-        var y_center = HEX_HEIGHT * view.scale * (coordinates.row + 0.5 * +offset_down) + view.offset_y;
-        var coordinate_label = (coordinates.col + grid.offset[0]) + ', ' + (coordinates.row + grid.offset[1]);
+    function DisplayHex(grid, coordinates, view, canvas, clear_first = false) {
+        let ctx = canvas.getContext('2d');
+        let x_center = 3 / 2 * coordinates.col * view.scale + view.offset_x;
+        let offset_down = (Boolean(coordinates.col % 2) == grid.first_is_up);
+        let y_center = HEX_HEIGHT * view.scale * (coordinates.row + 0.5 * +offset_down) + view.offset_y;
+        let coordinate_label = (coordinates.col + grid.offset[0]) + ', ' + (coordinates.row + grid.offset[1]);
         if (clear_first) {
             DrawHexagon(x_center, y_center, view.scale, '#ffffff', ctx, '#ffffff');
         }
@@ -153,16 +149,16 @@ var HexDisplay;
         return { 'x': (pt.x - view.offset_x) / view.scale, 'y': (pt.y - view.offset_y) / view.scale };
     }
     function normal_to_axial(coord, grid) {
-        var q = coord.col;
-        var r = coord.row - (coord.col + (coord.col & 1)) / 2;
+        let q = coord.col;
+        let r = coord.row - (coord.col + (coord.col & 1)) / 2;
         if (grid.first_is_up) {
             r = coord.row - (coord.col - (coord.col & 1)) / 2;
         }
         return { 'q': q, 'r': r };
     }
     function axial_to_normal(coord, grid) {
-        var col = coord.q;
-        var row = coord.r + (coord.q + (coord.q & 1)) / 2;
+        let col = coord.q;
+        let row = coord.r + (coord.q + (coord.q & 1)) / 2;
         if (grid.first_is_up) {
             row = coord.r + (coord.q - (coord.q & 1)) / 2;
         }
@@ -175,29 +171,29 @@ var HexDisplay;
         return { 'q': coord.q, 'r': coord.r, 's': -coord.q - coord.r };
     }
     function axial_round(coord) {
-        var x = coord.q;
-        var y = coord.r;
-        var xgrid = Math.round(x);
-        var ygrid = Math.round(y);
+        let x = coord.q;
+        let y = coord.r;
+        let xgrid = Math.round(x);
+        let ygrid = Math.round(y);
         x -= xgrid;
         y -= ygrid;
-        var dx = Math.round(x + 0.5 * y) * +(x * x >= y * y);
-        var dy = Math.round(y + 0.5 * x) * +(x * x < y * y);
+        let dx = Math.round(x + 0.5 * y) * +(x * x >= y * y);
+        let dy = Math.round(y + 0.5 * x) * +(x * x < y * y);
         return { 'q': xgrid + dx, 'r': ygrid + dy };
     }
     function pixel_to_normal(pt) {
         pt = standard_position(pt, VIEW);
-        var q = (2 / 3 * pt.x);
-        var r = (-1 / 3 * pt.x + HEX_HEIGHT / 3 * pt.y);
+        let q = (2 / 3 * pt.x);
+        let r = (-1 / 3 * pt.x + HEX_HEIGHT / 3 * pt.y);
         return axial_to_normal(cubic_to_axial(cubic_round(axial_to_cubic({ 'q': q, 'r': r }))), HEX_GRID);
     }
     function cubic_round(coord) {
-        var q = Math.round(coord.q);
-        var r = Math.round(coord.r);
-        var s = Math.round(coord.s);
-        var q_diff = Math.abs(q - coord.q);
-        var r_diff = Math.abs(r - coord.r);
-        var s_diff = Math.abs(s - coord.s);
+        let q = Math.round(coord.q);
+        let r = Math.round(coord.r);
+        let s = Math.round(coord.s);
+        let q_diff = Math.abs(q - coord.q);
+        let r_diff = Math.abs(r - coord.r);
+        let s_diff = Math.abs(s - coord.s);
         if ((q_diff > r_diff) && (q_diff > s_diff)) {
             q = -r - s;
         }
@@ -210,9 +206,15 @@ var HexDisplay;
         return { 'q': q, 'r': r, 's': s };
     }
     function printPos(event) {
-        var bounds = CANVAS.getBoundingClientRect();
-        var pt = { 'x': event.clientX - bounds.left, 'y': event.clientY - bounds.top };
+        let bounds = CANVAS.getBoundingClientRect();
+        let pt = { 'x': event.clientX - bounds.left, 'y': event.clientY - bounds.top };
         console.log(pixel_to_normal(pt));
+    }
+    function ClickCoordinates(event) {
+        let bounds = CANVAS.getBoundingClientRect();
+        let pt = { 'x': event.clientX - bounds.left, 'y': event.clientY - bounds.top };
+        let coordinates = pixel_to_normal(pt);
+        return coordinates;
     }
     function shape(array) {
         return [array[0].length, array.length];
@@ -252,52 +254,57 @@ var HexDisplay;
         DisplayGrid(HEX_GRID, VIEW, CANVAS);
     }
     function clearHexCanvas() {
-        var context = CANVAS.getContext('2d');
+        let context = CANVAS.getContext('2d');
         context.clearRect(0, 0, CANVAS.width, CANVAS.height);
     }
+    function loadSavedMap() {
+        $.get('load', {}, function (data, status) {
+            data = JSON.parse(data);
+            if (data == false) {
+                alert('There is no saved map.');
+            }
+            else {
+                HEX_GRID = data;
+                DisplayGrid(HEX_GRID, VIEW, CANVAS);
+            }
+        });
+    }
     function addTerrainButtons() {
-        var draw_button_div = document.getElementById("draw_buttons");
-        var _loop_1 = function (i) {
-            var terrain_type = Object.keys(TERRAIN_COLORS)[i];
-            var button_name = "".concat(terrain_type, "_button");
-            var button = document.createElement("BUTTON");
-            var text = document.createTextNode(terrain_type);
+        let draw_button_div = document.getElementById("draw_buttons");
+        for (let i = 0; i < Object.keys(TERRAIN_COLORS).length; i++) {
+            let terrain_type = Object.keys(TERRAIN_COLORS)[i];
+            let button_name = `${terrain_type}_button`;
+            let button = document.createElement("BUTTON");
+            let text = document.createTextNode(terrain_type);
             button.id = button_name;
             button.appendChild(text);
             draw_button_div.appendChild(button);
             button.addEventListener('click', function () {
-                CURRENT_DRAW.property = 'terrain';
-                CURRENT_DRAW.value = terrain_type;
+                CURRENT_BRUSH.property = 'terrain';
+                CURRENT_BRUSH.value = terrain_type;
+                CURRENT_CURSOR = 'brush';
             });
-        };
-        for (var i = 0; i < Object.keys(TERRAIN_COLORS).length; i++) {
-            _loop_1(i);
         }
     }
-    var HEX_GRID = RandomHexGrid(20, 30);
-    var CANVAS = document.getElementById("hexcanvas");
-    var VIEW = DefaultView(30);
+    let HEX_GRID = RandomHexGrid(20, 30);
+    loadSavedMap();
+    let CANVAS = document.getElementById("hexcanvas");
+    let VIEW = DefaultView(30);
     DisplayGrid(HEX_GRID, VIEW, CANVAS);
     addTerrainButtons();
     // Event Listeners
-    var zoom_in_button = document.getElementById('zoom_in');
-    zoom_in_button.addEventListener('click', zoomIn);
-    var zoom_out_button = document.getElementById('zoom_out');
-    zoom_out_button.addEventListener('click', zoomOut);
-    var add_left_button = document.getElementById('add_left');
-    add_left_button.addEventListener('click', function () {
+    document.getElementById('zoom_in').addEventListener('click', zoomIn);
+    document.getElementById('zoom_out').addEventListener('click', zoomOut);
+    document.getElementById('add_left').addEventListener('click', function () {
         AddColumns(HEX_GRID, 1, true);
     });
-    var add_right_button = document.getElementById('add_right');
-    add_right_button.addEventListener('click', function () {
+    document.getElementById('add_right').addEventListener('click', function () {
         AddColumns(HEX_GRID, 1, false);
     });
-    var add_top_button = document.getElementById('add_top');
-    add_top_button.addEventListener('click', function () {
+    document.getElementById('add_top').addEventListener('click', function () {
         AddRows(HEX_GRID, 1, true);
     });
-    var add_bottom_button = document.getElementById('add_bottom');
-    add_bottom_button.addEventListener('click', function () {
+    document.getElementById('add_bottom').addEventListener('click', function () {
         AddRows(HEX_GRID, 1, false);
     });
     document.addEventListener("keydown", function (event) {
@@ -314,21 +321,32 @@ var HexDisplay;
             shift_hexgrid('down');
         }
     });
-    CANVAS.addEventListener('mousemove', function (event) {
-        if (event.buttons == 1) {
-            // Nothing is selected to draw with, so you shouldn't make changes
-            if (CURRENT_DRAW == null) {
-                return;
-            }
-            var bounds = CANVAS.getBoundingClientRect();
-            var pt = { 'x': event.clientX - bounds.left, 'y': event.clientY - bounds.top };
-            var coordinates = pixel_to_normal(pt);
-            HEX_GRID.array[coordinates.row][coordinates.col][CURRENT_DRAW.property] = CURRENT_DRAW.value;
-            DisplayGrid(HEX_GRID, VIEW, CANVAS);
-            //DisplayHex(HEX_GRID, coordinates, VIEW, CANVAS, true)
+    CANVAS.addEventListener('mouseup', function (event) {
+        if (CURRENT_CURSOR == 'encounter') {
+            let coordinates = ClickCoordinates(event);
+            let hex = HEX_GRID.array[coordinates.row][coordinates.col];
+            $.post('encounter', {
+                'primary_creature': hex.primary_creature,
+                'terrain': hex.terrain
+            }, function (data, status) {
+                alert(data);
+            });
         }
     });
-    var coordinates_checkbox = document.getElementById('coordinates_checkbox');
+    CANVAS.addEventListener('mousemove', function (event) {
+        if (event.buttons == 1) {
+            // Nothing is selected with the cursor, so you shouldn't make changes
+            if (CURRENT_CURSOR == null) {
+                return;
+            }
+            else if (CURRENT_CURSOR == 'brush') {
+                let coordinates = ClickCoordinates(event);
+                HEX_GRID.array[coordinates.row][coordinates.col][CURRENT_BRUSH.property] = CURRENT_BRUSH.value;
+                DisplayGrid(HEX_GRID, VIEW, CANVAS);
+            }
+        }
+    });
+    let coordinates_checkbox = document.getElementById('coordinates_checkbox');
     coordinates_checkbox.addEventListener('change', function (event) {
         if (this.checked) {
             VIEW.show_coordinates = true;
@@ -338,7 +356,7 @@ var HexDisplay;
         }
         DisplayGrid(HEX_GRID, VIEW, CANVAS);
     });
-    var terrain_checkbox = document.getElementById('terrain_checkbox');
+    let terrain_checkbox = document.getElementById('terrain_checkbox');
     terrain_checkbox.addEventListener('change', function (event) {
         if (this.checked) {
             VIEW.show_terrain = true;
@@ -348,7 +366,7 @@ var HexDisplay;
         }
         DisplayGrid(HEX_GRID, VIEW, CANVAS);
     });
-    var player_view_checkbox = document.getElementById("player_view_checkbox");
+    let player_view_checkbox = document.getElementById("player_view_checkbox");
     player_view_checkbox.addEventListener('change', function (event) {
         if (this.checked) {
             VIEW.player_view = true;
@@ -358,14 +376,21 @@ var HexDisplay;
         }
         DisplayGrid(HEX_GRID, VIEW, CANVAS);
     });
-    var player_visibility = document.getElementById('player_visibility');
-    player_visibility.addEventListener('click', function () {
-        CURRENT_DRAW.property = 'player_visible';
-        CURRENT_DRAW.value = true;
+    document.getElementById('player_visibility').addEventListener('click', function () {
+        CURRENT_BRUSH.property = 'player_visible';
+        CURRENT_BRUSH.value = true;
+        CURRENT_CURSOR = 'brush';
     });
-    var dm_visibility = document.getElementById('dm_visibility');
-    dm_visibility.addEventListener('click', function () {
-        CURRENT_DRAW.property = 'player_visible';
-        CURRENT_DRAW.value = false;
+    document.getElementById('dm_visibility').addEventListener('click', function () {
+        CURRENT_BRUSH.property = 'player_visible';
+        CURRENT_BRUSH.value = false;
+        CURRENT_CURSOR = 'brush';
     });
+    document.getElementById('roll_combat').addEventListener('click', function () {
+        CURRENT_CURSOR = 'encounter';
+    });
+    document.getElementById('save').addEventListener('click', function () {
+        $.post('save', { 'hex_map': JSON.stringify(HEX_GRID) });
+    });
+    document.getElementById('load').addEventListener('click', loadSavedMap);
 })(HexDisplay || (HexDisplay = {}));

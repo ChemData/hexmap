@@ -1,42 +1,44 @@
-from flask import Flask, render_template, jsonify, redirect, url_for, request
+import os
+import json
+import flask
+from flask import Flask, render_template, jsonify, redirect, url_for, request, after_this_request
 from PIL import Image
-from image_generation import make_hex, generate_random_color
 
 app = Flask(__name__)
 
 
-@app.route('/', methods=['POST', 'GET'])
+@app.route('/')
 def index():
-    if request.method == 'POST':
-        if request.form.get('open') == 'Open':
-            # Generate the image using Pillow
-            make_hex(generate_random_color(), 'static/image.png')
-            # Render the template with the image URL
-            return render_template('index.html', image_url='/static/image.png')
-        elif request.form.get('close') == 'Close':
-            print('do something else')
-            return redirect(url_for('denial'))
-        else:
-            pass
-
-    else:
-        print('not post')
-        return render_template('index.html', image_url='/static/image.png')
+    return render_template('index.html')
 
 
-@app.route('/denied')
-def denial():
-    return 'You do not get to see shit!'
+@app.route('/encounter', methods=['POST'])
+def encounter():
+    data = request.form
+    primary_creature = data['primary_creature']
+    terrain = data['terrain']
+    return jsonify(f"{primary_creature}s attack your ass in the {terrain}!")
 
 
-@app.route('/generate-image')
-def generate_image():
-    # Generate the image using Pillow
-    make_hex(generate_random_color(), 'static/image.png')
+@app.route('/save', methods=['POST'])
+def save_map():
+    data = request.form
+    hex_grid = data['hex_map']
+    with open('storage/saved_map.txt', 'w') as f:
+        f.write(hex_grid)
+    return jsonify(True)
 
-    # Return the new image URL as a JSON response
-    return render_template('index.html', image_url='/static/image.png')
+
+@app.route('/load', methods=['GET'])
+def load_map():
+    try:
+        with open('storage/saved_map.txt', 'r') as f:
+            map_string = f.read()
+        return jsonify(map_string)
+    except FileNotFoundError:
+        return jsonify(False)
 
 
 if __name__ == '__main__':
+    app.debug = True
     app.run()

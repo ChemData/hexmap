@@ -1,8 +1,11 @@
 {
     "compilerOptions": {
-        "outDir": "src",
+        "outDir": "static/js",
         "lib": ["ES5", "ES6", "ES7", "DOM", "esnext"],
-        "downlevelIteration": true
+        "downlevelIteration": true,
+        "module": "es2015",
+        "target": "es2015",
+        "allowSyntheticDefaultImports": true
     },
 "include": ["ts_src"]
 } 
