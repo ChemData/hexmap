@@ -326,14 +326,14 @@ namespace HexDisplay {
         context.clearRect(0, 0, CANVAS.width, CANVAS.height)
     }
 
-    function loadSavedMap(){
-        $.get(
+    function loadSavedMap(map_name: string){
+        $.post(
             'load',
-            {},
+            {'save_name': map_name},
             function(data, status){
                 data = JSON.parse(data)
                 if (data == false){
-                    alert('There is no saved map.')
+                    alert('There is no saved map with that name.')
                 }
                 else {
                     HEX_GRID = data
@@ -363,18 +363,39 @@ namespace HexDisplay {
 
     }
 
+    function populateSaveList(){
+        $.get(
+            'saved_map_names',
+            {},
+            function(data, status){
+                let saved_names = data
+                console.log(saved_names)
+                let dropdown = $("#saved_maps_dropdown")
+                dropdown.empty()
+                console.log(saved_names.length)
+                for (let i=0; i<saved_names.length; i++){
+                    dropdown.append(`<option value="${saved_names[i]}">${saved_names[i]}</option>`)
+                }
+            }
+        )
+    }
 
     let HEX_GRID = RandomHexGrid(20, 30);
-    loadSavedMap();
+    loadSavedMap('saved_map');
+    populateSaveList();
     let CANVAS = <HTMLCanvasElement>document.getElementById("hexcanvas");
     let VIEW = DefaultView(30)
     DisplayGrid(HEX_GRID, VIEW, CANVAS)
     addTerrainButtons()
 
     // Event Listeners
-    document.getElementById('zoom_in').addEventListener('click', zoomIn);
-
-    document.getElementById('zoom_out').addEventListener('click', zoomOut);
+    document.getElementById('hexcanvas').addEventListener('wheel', function(event){
+        if (event.deltaY > 0){
+            zoomIn()
+        } else {
+            zoomOut()
+        }
+    })
 
     document.getElementById('add_left').addEventListener('click', function () {
         AddColumns(HEX_GRID, 1, true);
@@ -479,12 +500,31 @@ namespace HexDisplay {
     })
 
     document.getElementById('save').addEventListener('click', function(){
-        $.post(
-            'save',
-            {'hex_map': JSON.stringify(HEX_GRID)}
+        let save_name = prompt('Save name: ')
+        if ((save_name != '') && (save_name != null)){
+            $.post(
+                'save',
+                {'hex_map': JSON.stringify(HEX_GRID),
+                'save_name': save_name}
         )
+        } else {
+            alert('Invalid name - The map was not saved.')
+        }
+        populateSaveList()
     })
 
-    document.getElementById('load').addEventListener('click', loadSavedMap)
+    document.getElementById('load').addEventListener('click', function(){
+        let load_name = $("#saved_maps_dropdown").find(":selected").text()
+        loadSavedMap(load_name);
+    })
+    document.getElementById('delete').addEventListener('click', function(){
+        $.post(
+            'delete_save',
+            {'to_delete': $("#saved_maps_dropdown").find(":selected").text()},
+            function(data, alert){
+            }
+        )
+        populateSaveList()
+    })
 }
 
