@@ -4,11 +4,23 @@
     <meta charset="UTF-8">
     <script type="text/javascript" src="src/hexes.js"></script>
     <title>The Display</title>
+    <style>
+        canvas.myCanvas {
+            border: 1px solid #ffffff;
+          }
+        button.button1 {
+            position: absolute;
+            width: 200px;
+            height: 40px;
+            top: 700px;
+        }
+    </style>
 </head>
 <body onload="setup(); draw_random_hexes(document.querySelector('.myCanvas').getContext('2d'), 20, 50, 30);">
-    <canvas class="myCanvas" style="boarder:1px solid #ffffff;">
+    <canvas class="myCanvas">
         <p>Your browser doesn't support canvas.</p>
-      </canvas>
+    </canvas>
+    <button class="button1">Blue</button>
 </body>
 <script>
 function setup() {
