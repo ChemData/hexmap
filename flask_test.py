@@ -2,7 +2,6 @@ import os
 import json
 import flask
 from flask import Flask, render_template, jsonify, redirect, url_for, request, after_this_request
-from PIL import Image
 from data_load import MOB_SETS, ENVIRONMENT_SETS
 
 app = Flask(__name__)
@@ -26,6 +25,7 @@ def save_map():
     data = request.form
     hex_grid = data['hex_map']
     save_name = data['save_name']
+    os.makedirs('storage', exist_ok=True)
     with open(f'storage/{save_name}.txt', 'w') as f:
         f.write(hex_grid)
     return jsonify(True)
@@ -45,7 +45,10 @@ def load_map():
 
 @app.route('/saved_map_names', methods=['GET'])
 def saved_map_names():
-    save_names = [x.rstrip('.txt') for x in os.listdir('storage') if x.endswith('txt')]
+    try:
+        save_names = [os.path.splitext(x)[0] for x in os.listdir('storage') if x.endswith('txt')]
+    except FileNotFoundError:
+        return []
     return save_names
 
 @app.route('/delete_save', methods=['POST'])

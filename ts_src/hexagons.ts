@@ -291,16 +291,46 @@ namespace HexDisplay {
         'show_terrain': true, 'show_coordinates': false, 'player_view': false}
     }
 
-    function zoomIn() {
-        clearHexCanvas()
+    function zoomIn(redraw: boolean = true, fixed_point: (Point | null) = null) {
+        let old_scale = VIEW.scale
         VIEW.scale = Math.min(300, VIEW.scale * 1.2)
-        DisplayGrid(HEX_GRID, VIEW, CANVAS)
+        let scaling_factor = VIEW.scale/old_scale
+        if (fixed_point != null){
+            VIEW.offset_x -= fixed_point.x * (scaling_factor-1)
+            VIEW.offset_y -= fixed_point.y * (scaling_factor-1)
+        } else {
+            VIEW.offset_x *= VIEW.scale/old_scale
+            VIEW.offset_y *= VIEW.scale/old_scale}
+        if (redraw){
+            clearHexCanvas()
+            DisplayGrid(HEX_GRID, VIEW, CANVAS)
+        }
+
     }
 
-    function zoomOut() {
-        clearHexCanvas()
-        VIEW.scale = Math.max(20, VIEW.scale * 0.8)
-        DisplayGrid(HEX_GRID, VIEW, CANVAS)
+    function zoomOut(redraw: boolean = true, fixed_point: (Point | null) = null) {
+        let old_scale = VIEW.scale
+        VIEW.scale = Math.max(10, VIEW.scale * 0.8)
+        let scaling_factor = VIEW.scale/old_scale
+        if (fixed_point != null){
+            VIEW.offset_x -= fixed_point.x * (scaling_factor-1)
+            VIEW.offset_y -= fixed_point.y * (scaling_factor-1)
+        } else {
+            VIEW.offset_x *= VIEW.scale/old_scale
+            VIEW.offset_y *= VIEW.scale/old_scale}
+        if (redraw){
+            clearHexCanvas()
+            DisplayGrid(HEX_GRID, VIEW, CANVAS)
+        }
+    }
+
+    function centerOnPoint(point: Point, redraw: boolean = true): void {
+        VIEW.offset_x = CANVAS.width/2 - point.x
+        VIEW.offset_y = CANVAS.height/2 - point.y
+        if (redraw) {
+            clearHexCanvas()
+            DisplayGrid(HEX_GRID, VIEW, CANVAS)
+        }
     }
 
     function shift_hexgrid(direction: string) {
@@ -380,8 +410,7 @@ namespace HexDisplay {
         )
     }
 
-    let HEX_GRID = RandomHexGrid(20, 30);
-    loadSavedMap('saved_map');
+    let HEX_GRID = EmptyHexGrid(20, 30)
     populateSaveList();
     let CANVAS = <HTMLCanvasElement>document.getElementById("hexcanvas");
     let VIEW = DefaultView(30)
@@ -390,10 +419,15 @@ namespace HexDisplay {
 
     // Event Listeners
     document.getElementById('hexcanvas').addEventListener('wheel', function(event){
+        event.preventDefault()
+        let bounds = CANVAS.getBoundingClientRect();
+        let pt = {'x': event.clientX - bounds.left, 'y': event.clientY - bounds.top}
+        pt.x -= VIEW.offset_x
+        pt.y -= VIEW.offset_y
         if (event.deltaY > 0){
-            zoomIn()
+            zoomIn(true, pt)
         } else {
-            zoomOut()
+            zoomOut(true, pt)
         }
     })
 
@@ -507,6 +541,7 @@ namespace HexDisplay {
                 {'hex_map': JSON.stringify(HEX_GRID),
                 'save_name': save_name}
         )
+            populateSaveList()
         } else {
             alert('Invalid name - The map was not saved.')
         }
@@ -517,6 +552,7 @@ namespace HexDisplay {
         let load_name = $("#saved_maps_dropdown").find(":selected").text()
         loadSavedMap(load_name);
     })
+
     document.getElementById('delete').addEventListener('click', function(){
         $.post(
             'delete_save',

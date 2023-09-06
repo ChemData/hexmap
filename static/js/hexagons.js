@@ -223,15 +223,47 @@ var HexDisplay;
         return { 'offset_x': side_length, 'offset_y': HEX_HEIGHT / 2 * side_length, 'scale': side_length,
             'show_terrain': true, 'show_coordinates': false, 'player_view': false };
     }
-    function zoomIn() {
-        clearHexCanvas();
+    function zoomIn(redraw = true, fixed_point = null) {
+        let old_scale = VIEW.scale;
         VIEW.scale = Math.min(300, VIEW.scale * 1.2);
-        DisplayGrid(HEX_GRID, VIEW, CANVAS);
+        let scaling_factor = VIEW.scale / old_scale;
+        if (fixed_point != null) {
+            VIEW.offset_x -= fixed_point.x * (scaling_factor - 1);
+            VIEW.offset_y -= fixed_point.y * (scaling_factor - 1);
+        }
+        else {
+            VIEW.offset_x *= VIEW.scale / old_scale;
+            VIEW.offset_y *= VIEW.scale / old_scale;
+        }
+        if (redraw) {
+            clearHexCanvas();
+            DisplayGrid(HEX_GRID, VIEW, CANVAS);
+        }
     }
-    function zoomOut() {
-        clearHexCanvas();
-        VIEW.scale = Math.max(20, VIEW.scale * 0.8);
-        DisplayGrid(HEX_GRID, VIEW, CANVAS);
+    function zoomOut(redraw = true, fixed_point = null) {
+        let old_scale = VIEW.scale;
+        VIEW.scale = Math.max(10, VIEW.scale * 0.8);
+        let scaling_factor = VIEW.scale / old_scale;
+        if (fixed_point != null) {
+            VIEW.offset_x -= fixed_point.x * (scaling_factor - 1);
+            VIEW.offset_y -= fixed_point.y * (scaling_factor - 1);
+        }
+        else {
+            VIEW.offset_x *= VIEW.scale / old_scale;
+            VIEW.offset_y *= VIEW.scale / old_scale;
+        }
+        if (redraw) {
+            clearHexCanvas();
+            DisplayGrid(HEX_GRID, VIEW, CANVAS);
+        }
+    }
+    function centerOnPoint(point, redraw = true) {
+        VIEW.offset_x = CANVAS.width / 2 - point.x;
+        VIEW.offset_y = CANVAS.height / 2 - point.y;
+        if (redraw) {
+            clearHexCanvas();
+            DisplayGrid(HEX_GRID, VIEW, CANVAS);
+        }
     }
     function shift_hexgrid(direction) {
         clearHexCanvas();
@@ -298,24 +330,26 @@ var HexDisplay;
             }
         });
     }
-    let HEX_GRID = RandomHexGrid(20, 30);
-    loadSavedMap('saved_map');
+    let HEX_GRID = EmptyHexGrid(20, 30);
     populateSaveList();
     let CANVAS = document.getElementById("hexcanvas");
     let VIEW = DefaultView(30);
     DisplayGrid(HEX_GRID, VIEW, CANVAS);
     addTerrainButtons();
     // Event Listeners
-    document.getElementById('zoom_in').addEventListener('click', zoomIn);
     document.getElementById('hexcanvas').addEventListener('wheel', function (event) {
+        event.preventDefault();
+        let bounds = CANVAS.getBoundingClientRect();
+        let pt = { 'x': event.clientX - bounds.left, 'y': event.clientY - bounds.top };
+        pt.x -= VIEW.offset_x;
+        pt.y -= VIEW.offset_y;
         if (event.deltaY > 0) {
-            zoomIn();
+            zoomIn(true, pt);
         }
         else {
-            zoomOut();
+            zoomOut(true, pt);
         }
     });
-    document.getElementById('zoom_out').addEventListener('click', zoomOut);
     document.getElementById('add_left').addEventListener('click', function () {
         AddColumns(HEX_GRID, 1, true);
     });
@@ -415,6 +449,7 @@ var HexDisplay;
         if ((save_name != '') && (save_name != null)) {
             $.post('save', { 'hex_map': JSON.stringify(HEX_GRID),
                 'save_name': save_name });
+            populateSaveList();
         }
         else {
             alert('Invalid name - The map was not saved.');
