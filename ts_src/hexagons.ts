@@ -399,12 +399,42 @@ namespace HexDisplay {
             {},
             function(data, status){
                 let saved_names = data
-                console.log(saved_names)
                 let dropdown = $("#saved_maps_dropdown")
                 dropdown.empty()
-                console.log(saved_names.length)
                 for (let i=0; i<saved_names.length; i++){
                     dropdown.append(`<option value="${saved_names[i]}">${saved_names[i]}</option>`)
+                }
+            }
+        )
+    }
+
+    function populateMobSetNames(){
+        $.get(
+            'mob_set_names',
+            {},
+            function(data, status){
+                let mob_set_names = data
+                let dropdown = $("#mob_set_dropdown")
+                dropdown.empty()
+                dropdown.append(`<option value="">None</option>`)
+                for (let i=0; i<mob_set_names.length; i++){
+                    dropdown.append(`<option value="${mob_set_names[i]['value']}">${mob_set_names[i]['name']}</option>`)
+                }
+            }
+        )
+    }
+
+    function populateEnvironmentList(){
+        $.get(
+            'environment_set_names',
+            {},
+            function(data, status){
+                let environment_set_names = data
+                let dropdown = $("#environment_dropdown")
+                dropdown.empty()
+                dropdown.append(`<option value="">None</option>`)
+                for (let i=0; i<environment_set_names.length; i++){
+                    dropdown.append(`<option value="${environment_set_names[i]['value']}">${environment_set_names[i]['name']}</option>`)
                 }
             }
         )
@@ -416,6 +446,8 @@ namespace HexDisplay {
     let VIEW = DefaultView(30)
     DisplayGrid(HEX_GRID, VIEW, CANVAS)
     addTerrainButtons()
+    populateMobSetNames()
+    populateEnvironmentList()
 
     // Event Listeners
     document.getElementById('hexcanvas').addEventListener('wheel', function(event){
@@ -529,8 +561,27 @@ namespace HexDisplay {
         CURRENT_CURSOR = 'brush'
     })
 
-    document.getElementById('roll_combat').addEventListener('click', function(){
-        CURRENT_CURSOR = 'encounter'
+    document.getElementById('encounter_gen').addEventListener('click', function(){
+        let party_size = $("#party_size").val()
+        let party_level = $("#party_level").val()
+        let difficulty = $("#difficulty_dropdown").find(":selected").val()
+        let primary_enemy = $("#mob_set_dropdown").find(":selected").val()
+        let environment_type = $("#environment_dropdown").find(":selected").val()
+        $.get(
+            'encounter',
+            {
+                'environment_type': environment_type,
+                'party_size': party_size,
+                'party_level': party_level,
+                'difficulty': difficulty,
+                'primary_enemy': primary_enemy},
+            function(data, status){
+                console.log(data)
+                let div = document.getElementById("encounter_display")
+                div.replaceChildren()
+                div.innerHTML += data
+            }
+        )
     })
 
     document.getElementById('save').addEventListener('click', function(){
