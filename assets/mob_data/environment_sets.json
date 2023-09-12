@@ -1,6 +1,6 @@
 {
     "southern_forest": {
-        "name": "southern_forest",
+        "name": "southern forest",
         "mob_sets": [
             "wolves",
             "bears",
@@ -15,7 +15,7 @@
         ]
     },
     "southern_shore": {
-        "name": "southern_shore",
+        "name": "southern shore",
         "mob_sets": [
             "kuo-toas",
             "coastal_elementals",
@@ -25,7 +25,7 @@
         ]
     },
     "southern_plains": {
-        "name": "southern_plains",
+        "name": "southern plains",
         "mob_sets": [
             "wolves",
             "bandits",

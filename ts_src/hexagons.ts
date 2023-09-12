@@ -8,23 +8,36 @@ namespace HexDisplay {
         "empty": "#ffffff"
     }
 
-    let CURRENT_CURSOR: (null | string) = null;
+    type Cursor = {
+        function: (Function | null)
+        trigger_on_move: boolean
+    }
 
     type Brush = {
         property: (string | null)
         value: (string | boolean)
     }
-    let CURRENT_BRUSH: Brush = {'property': null, 'value': false}
 
     type Hex = {
         terrain: string,
         player_visible: boolean,
         primary_creature: (string | null),
-        climate: (string | null)
+        climate: (string | null),
+        settlement: (Settlement | null)
+    }
+
+    type Settlement = {
+        name: string,
+        type: string
     }
 
     function EmptyHex(): Hex {
-        return {'terrain': 'empty', 'player_visible': false, 'primary_creature': null, 'climate': null}
+        return {
+            'terrain': 'empty',
+            'player_visible': false,
+            'primary_creature': null,
+            'climate': null,
+            'settlement': null}
     }
 
     function RandomHex(): Hex {
@@ -291,16 +304,46 @@ namespace HexDisplay {
         'show_terrain': true, 'show_coordinates': false, 'player_view': false}
     }
 
-    function zoomIn() {
-        clearHexCanvas()
+    function zoomIn(redraw: boolean = true, fixed_point: (Point | null) = null) {
+        let old_scale = VIEW.scale
         VIEW.scale = Math.min(300, VIEW.scale * 1.2)
-        DisplayGrid(HEX_GRID, VIEW, CANVAS)
+        let scaling_factor = VIEW.scale/old_scale
+        if (fixed_point != null){
+            VIEW.offset_x -= fixed_point.x * (scaling_factor-1)
+            VIEW.offset_y -= fixed_point.y * (scaling_factor-1)
+        } else {
+            VIEW.offset_x *= VIEW.scale/old_scale
+            VIEW.offset_y *= VIEW.scale/old_scale}
+        if (redraw){
+            clearHexCanvas()
+            DisplayGrid(HEX_GRID, VIEW, CANVAS)
+        }
+
     }
 
-    function zoomOut() {
-        clearHexCanvas()
-        VIEW.scale = Math.max(20, VIEW.scale * 0.8)
-        DisplayGrid(HEX_GRID, VIEW, CANVAS)
+    function zoomOut(redraw: boolean = true, fixed_point: (Point | null) = null) {
+        let old_scale = VIEW.scale
+        VIEW.scale = Math.max(10, VIEW.scale * 0.8)
+        let scaling_factor = VIEW.scale/old_scale
+        if (fixed_point != null){
+            VIEW.offset_x -= fixed_point.x * (scaling_factor-1)
+            VIEW.offset_y -= fixed_point.y * (scaling_factor-1)
+        } else {
+            VIEW.offset_x *= VIEW.scale/old_scale
+            VIEW.offset_y *= VIEW.scale/old_scale}
+        if (redraw){
+            clearHexCanvas()
+            DisplayGrid(HEX_GRID, VIEW, CANVAS)
+        }
+    }
+
+    function centerOnPoint(point: Point, redraw: boolean = true): void {
+        VIEW.offset_x = CANVAS.width/2 - point.x
+        VIEW.offset_y = CANVAS.height/2 - point.y
+        if (redraw) {
+            clearHexCanvas()
+            DisplayGrid(HEX_GRID, VIEW, CANVAS)
+        }
     }
 
     function shift_hexgrid(direction: string) {
@@ -369,10 +412,8 @@ namespace HexDisplay {
             {},
             function(data, status){
                 let saved_names = data
-                console.log(saved_names)
                 let dropdown = $("#saved_maps_dropdown")
                 dropdown.empty()
-                console.log(saved_names.length)
                 for (let i=0; i<saved_names.length; i++){
                     dropdown.append(`<option value="${saved_names[i]}">${saved_names[i]}</option>`)
                 }
@@ -380,20 +421,61 @@ namespace HexDisplay {
         )
     }
 
-    let HEX_GRID = RandomHexGrid(20, 30);
-    loadSavedMap('saved_map');
+    function populateMobSetNames(){
+        $.get(
+            'mob_set_names',
+            {},
+            function(data, status){
+                let mob_set_names = data
+                let dropdown = $("#mob_set_dropdown")
+                dropdown.empty()
+                dropdown.append(`<option value="">None</option>`)
+                for (let i=0; i<mob_set_names.length; i++){
+                    dropdown.append(`<option value="${mob_set_names[i]['value']}">${mob_set_names[i]['name']}</option>`)
+                }
+            }
+        )
+    }
+
+    function populateEnvironmentList(){
+        $.get(
+            'environment_set_names',
+            {},
+            function(data, status){
+                let environment_set_names = data
+                let dropdown = $("#environment_dropdown")
+                dropdown.empty()
+                dropdown.append(`<option value="">None</option>`)
+                for (let i=0; i<environment_set_names.length; i++){
+                    dropdown.append(`<option value="${environment_set_names[i]['value']}">${environment_set_names[i]['name']}</option>`)
+                }
+            }
+        )
+    }
+
+    let CURRENT_CURSOR: Cursor = {'purpose': null, 'trigger_on_move': false};
+        let CURRENT_BRUSH: Brush = {'property': null, 'value': false}
+
+    let HEX_GRID = EmptyHexGrid(20, 30)
     populateSaveList();
     let CANVAS = <HTMLCanvasElement>document.getElementById("hexcanvas");
     let VIEW = DefaultView(30)
     DisplayGrid(HEX_GRID, VIEW, CANVAS)
     addTerrainButtons()
+    populateMobSetNames()
+    populateEnvironmentList()
 
     // Event Listeners
     document.getElementById('hexcanvas').addEventListener('wheel', function(event){
+        event.preventDefault()
+        let bounds = CANVAS.getBoundingClientRect();
+        let pt = {'x': event.clientX - bounds.left, 'y': event.clientY - bounds.top}
+        pt.x -= VIEW.offset_x
+        pt.y -= VIEW.offset_y
         if (event.deltaY > 0){
-            zoomIn()
+            zoomIn(true, pt)
         } else {
-            zoomOut()
+            zoomOut(true, pt)
         }
     })
 
@@ -425,26 +507,19 @@ namespace HexDisplay {
         }
     })
 
-    CANVAS.addEventListener('mouseup', function(event){
-        if (CURRENT_CURSOR == 'encounter') {
-            let coordinates = ClickCoordinates(event)
-            let hex = HEX_GRID.array[coordinates.row][coordinates.col];
-            $.post('encounter',{
-                'primary_creature': hex.primary_creature,
-                'terrain': hex.terrain
-                },
-            function(data, status){
-            alert(data)
-            })
-        }
-
-    })
+    document.getElementById('hexcanvas').addEventListener('mouseup', function(event){
+        let coordinates = ClickCoordinates(event)
+        let hex = HEX_GRID.array[coordinates.row][coordinates.col];
+        CURRENT_CURSOR.function(hex)
 
     CANVAS.addEventListener('mousemove', function (event) {
         if (event.buttons == 1) {
-            // Nothing is selected with the cursor, so you shouldn't make changes
-            if (CURRENT_CURSOR == null) {
+            if (!CURRENT_CURSOR.trigger_on_move) {
                 return
+            }
+            let coordinates = ClickCoordinates(event)
+            let hex = HEX_GRID.array[coordinates.row][coordinates.col];
+            CURRENT_CURSOR.function(hex)
             } else if (CURRENT_CURSOR == 'brush') {
                 let coordinates = ClickCoordinates(event)
                 HEX_GRID.array[coordinates.row][coordinates.col][CURRENT_BRUSH.property] = CURRENT_BRUSH.value
@@ -455,31 +530,19 @@ namespace HexDisplay {
 
     let coordinates_checkbox = <HTMLInputElement> document.getElementById('coordinates_checkbox');
     coordinates_checkbox.addEventListener('change', function(event){
-        if(this.checked){
-            VIEW.show_coordinates = true
-        } else {
-            VIEW.show_coordinates = false
-        }
+        VIEW.show_coordinates = this.checked;
         DisplayGrid(HEX_GRID, VIEW, CANVAS)
     } )
 
     let terrain_checkbox = <HTMLInputElement> document.getElementById('terrain_checkbox');
     terrain_checkbox.addEventListener('change', function(event){
-        if(this.checked){
-            VIEW.show_terrain = true
-        } else {
-            VIEW.show_terrain = false
-        }
+        VIEW.show_terrain = this.checked;
         DisplayGrid(HEX_GRID, VIEW, CANVAS)
     } )
 
     let player_view_checkbox = <HTMLInputElement> document.getElementById("player_view_checkbox")
     player_view_checkbox.addEventListener('change', function(event){
-        if(this.checked){
-            VIEW.player_view = true;
-        } else {
-            VIEW.player_view = false;
-        }
+        VIEW.player_view = this.checked;
         DisplayGrid(HEX_GRID, VIEW, CANVAS);
     })
 
@@ -495,8 +558,31 @@ namespace HexDisplay {
         CURRENT_CURSOR = 'brush'
     })
 
-    document.getElementById('roll_combat').addEventListener('click', function(){
-        CURRENT_CURSOR = 'encounter'
+    document.getElementById('temple').addEventListener('click', function(){
+        CURRENT_BRUSH.property = 'settlement'
+    })
+
+    document.getElementById('encounter_gen').addEventListener('click', function(){
+        let party_size = $("#party_size").val()
+        let party_level = $("#party_level").val()
+        let difficulty = $("#difficulty_dropdown").find(":selected").val()
+        let primary_enemy = $("#mob_set_dropdown").find(":selected").val()
+        let environment_type = $("#environment_dropdown").find(":selected").val()
+        $.get(
+            'encounter',
+            {
+                'environment_type': environment_type,
+                'party_size': party_size,
+                'party_level': party_level,
+                'difficulty': difficulty,
+                'primary_enemy': primary_enemy},
+            function(data, status){
+                console.log(data)
+                let div = document.getElementById("encounter_display")
+                div.replaceChildren()
+                div.innerHTML += data
+            }
+        )
     })
 
     document.getElementById('save').addEventListener('click', function(){
@@ -507,6 +593,7 @@ namespace HexDisplay {
                 {'hex_map': JSON.stringify(HEX_GRID),
                 'save_name': save_name}
         )
+            populateSaveList()
         } else {
             alert('Invalid name - The map was not saved.')
         }
@@ -517,6 +604,7 @@ namespace HexDisplay {
         let load_name = $("#saved_maps_dropdown").find(":selected").text()
         loadSavedMap(load_name);
     })
+
     document.getElementById('delete').addEventListener('click', function(){
         $.post(
             'delete_save',

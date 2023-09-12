@@ -16,7 +16,6 @@
     <button type="button" id="load">Load</button>
     <button type="button" id="delete">Delete</button>
     <select id="saved_maps_dropdown">
-      <option>value="green"</option>
     </select>
   </div>
   <div id="draw_buttons">
@@ -30,12 +29,33 @@
     <label for="player_view_checkbox">Player View</label>
     <button type="button" id="player_visibility">Player Visible</button>
     <button type="button" id="dm_visibility">DM Visible</button>
-    <button type="button" id="roll_combat">Roll Combat</button>
-    <button type="button" id="get_set_names">Get set names</button>
   </div>
+    <form id="encounter_ui">
+        <label for="party_level">Party Level:</label>
+        <input type="text" id="party_level" value="3" size="10">
+        <label for="party_size">Party Size:</label>
+        <input type="text" id="party_size" value="4" size="10">
+        <label for="difficulty_dropdown">Difficulty</label>
+        <select id="difficulty_dropdown">
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+            <option value="deadly">Deadly</option>
+            <option value="random">Random</option>
+        </select>
+        <label for="mob_set_dropdown">Enemy Type</label>
+        <select id="mob_set_dropdown"></select>
+        <label for="environment_dropdown">Environment</label>
+        <select id="environment_dropdown"></select>
+        <button type="button" id="encounter_gen">Generate Encounter</button>
+    </form>
+    <div id="encounter_display">
+        <h4>Encounter</h4>
+    </div>
+    <object data="{{url_for('static', filename='images/temple.svg')}}" height="50"> </object>
 </header>
 <body>
-  <canvas id="hexcanvas" width="800" height="600"></canvas>
+  <canvas id="hexcanvas" width="600" height="400"></canvas>
   <script src="../static/js/code.jquery.com_jquery-3.7.0.js"></script>
   <script type="module" src="../static/js/hexagons.js"></script>
 </body>
