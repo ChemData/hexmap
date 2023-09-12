@@ -8,23 +8,36 @@ namespace HexDisplay {
         "empty": "#ffffff"
     }
 
-    let CURRENT_CURSOR: (null | string) = null;
+    type Cursor = {
+        function: (Function | null)
+        trigger_on_move: boolean
+    }
 
     type Brush = {
         property: (string | null)
         value: (string | boolean)
     }
-    let CURRENT_BRUSH: Brush = {'property': null, 'value': false}
 
     type Hex = {
         terrain: string,
         player_visible: boolean,
         primary_creature: (string | null),
-        climate: (string | null)
+        climate: (string | null),
+        settlement: (Settlement | null)
+    }
+
+    type Settlement = {
+        name: string,
+        type: string
     }
 
     function EmptyHex(): Hex {
-        return {'terrain': 'empty', 'player_visible': false, 'primary_creature': null, 'climate': null}
+        return {
+            'terrain': 'empty',
+            'player_visible': false,
+            'primary_creature': null,
+            'climate': null,
+            'settlement': null}
     }
 
     function RandomHex(): Hex {
@@ -440,6 +453,9 @@ namespace HexDisplay {
         )
     }
 
+    let CURRENT_CURSOR: Cursor = {'purpose': null, 'trigger_on_move': false};
+        let CURRENT_BRUSH: Brush = {'property': null, 'value': false}
+
     let HEX_GRID = EmptyHexGrid(20, 30)
     populateSaveList();
     let CANVAS = <HTMLCanvasElement>document.getElementById("hexcanvas");
@@ -491,26 +507,19 @@ namespace HexDisplay {
         }
     })
 
-    CANVAS.addEventListener('mouseup', function(event){
-        if (CURRENT_CURSOR == 'encounter') {
-            let coordinates = ClickCoordinates(event)
-            let hex = HEX_GRID.array[coordinates.row][coordinates.col];
-            $.post('encounter',{
-                'primary_creature': hex.primary_creature,
-                'terrain': hex.terrain
-                },
-            function(data, status){
-            alert(data)
-            })
-        }
-
-    })
+    document.getElementById('hexcanvas').addEventListener('mouseup', function(event){
+        let coordinates = ClickCoordinates(event)
+        let hex = HEX_GRID.array[coordinates.row][coordinates.col];
+        CURRENT_CURSOR.function(hex)
 
     CANVAS.addEventListener('mousemove', function (event) {
         if (event.buttons == 1) {
-            // Nothing is selected with the cursor, so you shouldn't make changes
-            if (CURRENT_CURSOR == null) {
+            if (!CURRENT_CURSOR.trigger_on_move) {
                 return
+            }
+            let coordinates = ClickCoordinates(event)
+            let hex = HEX_GRID.array[coordinates.row][coordinates.col];
+            CURRENT_CURSOR.function(hex)
             } else if (CURRENT_CURSOR == 'brush') {
                 let coordinates = ClickCoordinates(event)
                 HEX_GRID.array[coordinates.row][coordinates.col][CURRENT_BRUSH.property] = CURRENT_BRUSH.value
@@ -521,31 +530,19 @@ namespace HexDisplay {
 
     let coordinates_checkbox = <HTMLInputElement> document.getElementById('coordinates_checkbox');
     coordinates_checkbox.addEventListener('change', function(event){
-        if(this.checked){
-            VIEW.show_coordinates = true
-        } else {
-            VIEW.show_coordinates = false
-        }
+        VIEW.show_coordinates = this.checked;
         DisplayGrid(HEX_GRID, VIEW, CANVAS)
     } )
 
     let terrain_checkbox = <HTMLInputElement> document.getElementById('terrain_checkbox');
     terrain_checkbox.addEventListener('change', function(event){
-        if(this.checked){
-            VIEW.show_terrain = true
-        } else {
-            VIEW.show_terrain = false
-        }
+        VIEW.show_terrain = this.checked;
         DisplayGrid(HEX_GRID, VIEW, CANVAS)
     } )
 
     let player_view_checkbox = <HTMLInputElement> document.getElementById("player_view_checkbox")
     player_view_checkbox.addEventListener('change', function(event){
-        if(this.checked){
-            VIEW.player_view = true;
-        } else {
-            VIEW.player_view = false;
-        }
+        VIEW.player_view = this.checked;
         DisplayGrid(HEX_GRID, VIEW, CANVAS);
     })
 
@@ -559,6 +556,10 @@ namespace HexDisplay {
         CURRENT_BRUSH.property = 'player_visible'
         CURRENT_BRUSH.value = false
         CURRENT_CURSOR = 'brush'
+    })
+
+    document.getElementById('temple').addEventListener('click', function(){
+        CURRENT_BRUSH.property = 'settlement'
     })
 
     document.getElementById('encounter_gen').addEventListener('click', function(){
