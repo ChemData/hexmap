@@ -8,10 +8,29 @@ var HexDisplay;
         "desert": "#ece95a",
         "empty": "#ffffff"
     };
-    let CURRENT_CURSOR = null;
-    let CURRENT_BRUSH = { 'property': null, 'value': false };
+    let SETTLEMENTS = {
+        'temple': {
+            'name': 'Temple',
+            'icon_path': 'temple.svg'
+        },
+        'castle': {
+            'name': 'Castle',
+            'icon_path': 'castle.svg'
+        }
+    };
+    for (let k in SETTLEMENTS) {
+        let new_image = new Image();
+        new_image.src = 'static/images/' + SETTLEMENTS[k]['icon_path'];
+        SETTLEMENTS[k]['icon'] = new_image;
+    }
     function EmptyHex() {
-        return { 'terrain': 'empty', 'player_visible': false, 'primary_creature': null, 'climate': null };
+        return {
+            'terrain': 'empty',
+            'player_visible': false,
+            'primary_creature': null,
+            'climate': null,
+            'settlement': null
+        };
     }
     function RandomHex() {
         let new_hex = EmptyHex();
@@ -38,6 +57,16 @@ var HexDisplay;
             ctx.font = `${Math.floor(0.3 * grid_view.scale)}px Arial`;
             ctx.fillStyle = 'black';
             ctx.fillText(coordinate_label, x - grid_view.scale * 0.4, y + grid_view.scale * 0.4 * HEX_HEIGHT);
+        }
+        if (hexagon.settlement != null) {
+            if (grid_view.show_settlements) {
+                ctx.drawImage(SETTLEMENTS[hexagon.settlement.type]['icon'], x - grid_view.scale * 0.4, y - grid_view.scale * 0.4, grid_view.scale, grid_view.scale);
+            }
+            if (grid_view.show_settlement_names) {
+                ctx.font = `${Math.floor(0.3 * grid_view.scale)}px Arial`;
+                ctx.fillStyle = 'black';
+                ctx.fillText(hexagon.settlement.name, x - grid_view.scale * 0.5, y - grid_view.scale * 0.3 * HEX_HEIGHT);
+            }
         }
     }
     function DrawHexagon(x, y, s, color, ctx, border_color = 'black') {
@@ -213,15 +242,36 @@ var HexDisplay;
     function ClickCoordinates(event) {
         let bounds = CANVAS.getBoundingClientRect();
         let pt = { 'x': event.clientX - bounds.left, 'y': event.clientY - bounds.top };
-        let coordinates = pixel_to_normal(pt);
-        return coordinates;
+        return pixel_to_normal(pt);
     }
     function shape(array) {
         return [array[0].length, array.length];
     }
     function DefaultView(side_length) {
         return { 'offset_x': side_length, 'offset_y': HEX_HEIGHT / 2 * side_length, 'scale': side_length,
-            'show_terrain': true, 'show_coordinates': false, 'player_view': false };
+            'show_terrain': true, 'show_coordinates': false, 'player_view': false, 'show_settlements': true,
+            'show_settlement_names': true };
+    }
+    function paintHex(hex) {
+        hex[CURRENT_BRUSH.property] = CURRENT_BRUSH.value;
+        DisplayGrid(HEX_GRID, VIEW, CANVAS);
+    }
+    function addSettlement(hex) {
+        if (CURRENT_BRUSH.value == 'delete') {
+            hex.settlement = null;
+            DisplayGrid(HEX_GRID, VIEW, CANVAS);
+            return;
+        }
+        if (hex.settlement != null) {
+            window.alert('A settlement already exists on this hex.');
+            return;
+        }
+        let new_name = window.prompt("What would you like to name the new settlement?");
+        if (new_name == null) {
+            return;
+        }
+        hex.settlement = { 'name': new_name, 'type': CURRENT_BRUSH.value };
+        DisplayGrid(HEX_GRID, VIEW, CANVAS);
     }
     function zoomIn(redraw = true, fixed_point = null) {
         let old_scale = VIEW.scale;
@@ -302,6 +352,7 @@ var HexDisplay;
         });
     }
     function addTerrainButtons() {
+        //I am just keeping this around to see how to programatically generate buttons
         let draw_button_div = document.getElementById("draw_buttons");
         for (let i = 0; i < Object.keys(TERRAIN_COLORS).length; i++) {
             let terrain_type = Object.keys(TERRAIN_COLORS)[i];
@@ -314,8 +365,26 @@ var HexDisplay;
             button.addEventListener('click', function () {
                 CURRENT_BRUSH.property = 'terrain';
                 CURRENT_BRUSH.value = terrain_type;
-                CURRENT_CURSOR = 'brush';
+                CURRENT_CURSOR.function = paintHex;
+                CURRENT_CURSOR.trigger_on_move = true;
             });
+        }
+    }
+    function populateTerrainList() {
+        let dropdown = $("#terrain_dropdown");
+        dropdown.empty();
+        for (let i = 0; i < Object.keys(TERRAIN_COLORS).length; i++) {
+            let terrain_type = Object.keys(TERRAIN_COLORS)[i];
+            dropdown.append(`<option value="${terrain_type}">${terrain_type}</option>`);
+        }
+    }
+    function populateSettlementList() {
+        let dropdown = $("#settlement_dropdown");
+        dropdown.empty();
+        dropdown.append(`<option value=delete>Delete</option>`);
+        for (let i = 0; i < Object.keys(SETTLEMENTS).length; i++) {
+            let settlement_key = Object.keys(SETTLEMENTS)[i];
+            dropdown.append(`<option value="${settlement_key}">${SETTLEMENTS[settlement_key]['name']}</option>`);
         }
     }
     function populateSaveList() {
@@ -350,15 +419,19 @@ var HexDisplay;
             }
         });
     }
+    let CURRENT_CURSOR = { 'function': null, 'trigger_on_move': false };
+    let CURRENT_BRUSH = { 'property': null, 'value': false };
     let HEX_GRID = EmptyHexGrid(20, 30);
-    populateSaveList();
     let CANVAS = document.getElementById("hexcanvas");
     let VIEW = DefaultView(30);
     DisplayGrid(HEX_GRID, VIEW, CANVAS);
-    addTerrainButtons();
+    populateSaveList();
+    populateTerrainList();
+    populateSettlementList();
     populateMobSetNames();
     populateEnvironmentList();
     // Event Listeners
+    // Navigation
     document.getElementById('hexcanvas').addEventListener('wheel', function (event) {
         event.preventDefault();
         let bounds = CANVAS.getBoundingClientRect();
@@ -371,18 +444,6 @@ var HexDisplay;
         else {
             zoomOut(true, pt);
         }
-    });
-    document.getElementById('add_left').addEventListener('click', function () {
-        AddColumns(HEX_GRID, 1, true);
-    });
-    document.getElementById('add_right').addEventListener('click', function () {
-        AddColumns(HEX_GRID, 1, false);
-    });
-    document.getElementById('add_top').addEventListener('click', function () {
-        AddRows(HEX_GRID, 1, true);
-    });
-    document.getElementById('add_bottom').addEventListener('click', function () {
-        AddRows(HEX_GRID, 1, false);
     });
     document.addEventListener("keydown", function (event) {
         if (event.key == 'a') {
@@ -398,71 +459,100 @@ var HexDisplay;
             shift_hexgrid('down');
         }
     });
-    CANVAS.addEventListener('mouseup', function (event) {
-        if (CURRENT_CURSOR == 'encounter') {
-            let coordinates = ClickCoordinates(event);
+    // Map Modification
+    document.getElementById('add_left').addEventListener('click', function () {
+        AddColumns(HEX_GRID, 1, true);
+    });
+    document.getElementById('add_right').addEventListener('click', function () {
+        AddColumns(HEX_GRID, 1, false);
+    });
+    document.getElementById('add_top').addEventListener('click', function () {
+        AddRows(HEX_GRID, 1, true);
+    });
+    document.getElementById('add_bottom').addEventListener('click', function () {
+        AddRows(HEX_GRID, 1, false);
+    });
+    document.getElementById('hexcanvas').addEventListener('mouseup', function (event) {
+        let coordinates = ClickCoordinates(event);
+        let hex = HEX_GRID.array[coordinates.row][coordinates.col];
+        if (hex == null) {
+            return;
+        }
+        if (CURRENT_CURSOR.function != null) {
+            CURRENT_CURSOR.function(hex);
+        }
+    });
+    document.getElementById('hexcanvas').addEventListener('mousemove', function (event) {
+        if (event.buttons != 1) {
+            return;
+        }
+        event.preventDefault();
+        if (!CURRENT_CURSOR.trigger_on_move) {
+            return;
+        }
+        let coordinates = ClickCoordinates(event);
+        try {
             let hex = HEX_GRID.array[coordinates.row][coordinates.col];
-            $.post('encounter', {
-                'primary_creature': hex.primary_creature,
-                'terrain': hex.terrain
-            }, function (data, status) {
-                alert(data);
-            });
+        }
+        catch (error) {
+            return;
+        }
+        let hex = HEX_GRID.array[coordinates.row][coordinates.col];
+        if (hex == null) {
+            return;
+        }
+        if (CURRENT_CURSOR.function != null) {
+            CURRENT_CURSOR.function(hex);
         }
     });
-    CANVAS.addEventListener('mousemove', function (event) {
-        if (event.buttons == 1) {
-            // Nothing is selected with the cursor, so you shouldn't make changes
-            if (CURRENT_CURSOR == null) {
-                return;
-            }
-            else if (CURRENT_CURSOR == 'brush') {
-                let coordinates = ClickCoordinates(event);
-                HEX_GRID.array[coordinates.row][coordinates.col][CURRENT_BRUSH.property] = CURRENT_BRUSH.value;
-                DisplayGrid(HEX_GRID, VIEW, CANVAS);
-            }
-        }
+    document.getElementById('terrain_dropdown').addEventListener('change', function () {
+        let terrain_type = $("#terrain_dropdown").find(":selected").val().toString();
+        CURRENT_BRUSH.property = 'terrain';
+        CURRENT_BRUSH.value = terrain_type;
+        CURRENT_CURSOR.function = paintHex;
+        CURRENT_CURSOR.trigger_on_move = true;
     });
+    document.getElementById('settlement_dropdown').addEventListener('change', function () {
+        let settlement_type = $("#settlement_dropdown").find(":selected").val().toString();
+        CURRENT_BRUSH.property = 'settlement';
+        CURRENT_BRUSH.value = settlement_type;
+        CURRENT_CURSOR.function = addSettlement;
+        CURRENT_CURSOR.trigger_on_move = false;
+    });
+    document.getElementById('visibility_dropdown').addEventListener('change', function () {
+        let player_visible = $("#visibility_dropdown").find(":selected").val().toString();
+        CURRENT_BRUSH.property = 'player_visible';
+        CURRENT_BRUSH.value = player_visible == 'true';
+        CURRENT_CURSOR.function = paintHex;
+        CURRENT_CURSOR.trigger_on_move = true;
+    });
+    // Display Modification
     let coordinates_checkbox = document.getElementById('coordinates_checkbox');
     coordinates_checkbox.addEventListener('change', function (event) {
-        if (this.checked) {
-            VIEW.show_coordinates = true;
-        }
-        else {
-            VIEW.show_coordinates = false;
-        }
+        VIEW.show_coordinates = this.checked;
         DisplayGrid(HEX_GRID, VIEW, CANVAS);
     });
     let terrain_checkbox = document.getElementById('terrain_checkbox');
     terrain_checkbox.addEventListener('change', function (event) {
-        if (this.checked) {
-            VIEW.show_terrain = true;
-        }
-        else {
-            VIEW.show_terrain = false;
-        }
+        VIEW.show_terrain = this.checked;
         DisplayGrid(HEX_GRID, VIEW, CANVAS);
     });
     let player_view_checkbox = document.getElementById("player_view_checkbox");
     player_view_checkbox.addEventListener('change', function (event) {
-        if (this.checked) {
-            VIEW.player_view = true;
-        }
-        else {
-            VIEW.player_view = false;
-        }
+        VIEW.player_view = this.checked;
         DisplayGrid(HEX_GRID, VIEW, CANVAS);
     });
-    document.getElementById('player_visibility').addEventListener('click', function () {
-        CURRENT_BRUSH.property = 'player_visible';
-        CURRENT_BRUSH.value = true;
-        CURRENT_CURSOR = 'brush';
+    let settlement_view_checkbox = document.getElementById('settlement_checkbox');
+    settlement_view_checkbox.addEventListener('change', function () {
+        VIEW.show_settlements = this.checked;
+        DisplayGrid(HEX_GRID, VIEW, CANVAS);
     });
-    document.getElementById('dm_visibility').addEventListener('click', function () {
-        CURRENT_BRUSH.property = 'player_visible';
-        CURRENT_BRUSH.value = false;
-        CURRENT_CURSOR = 'brush';
+    let settlement_name_checkbox = document.getElementById('settlement_name_checkbox');
+    settlement_name_checkbox.addEventListener('change', function () {
+        VIEW.show_settlement_names = this.checked;
+        DisplayGrid(HEX_GRID, VIEW, CANVAS);
     });
+    // Misc
     document.getElementById('encounter_gen').addEventListener('click', function () {
         let party_size = $("#party_size").val();
         let party_level = $("#party_level").val();
@@ -482,6 +572,13 @@ var HexDisplay;
             div.innerHTML += data;
         });
     });
+    document.getElementById('hex_info').addEventListener('click', function () {
+        CURRENT_CURSOR.function = function (hex) {
+            console.log(hex);
+        };
+        CURRENT_CURSOR.trigger_on_move = false;
+    });
+    // Map Storage
     document.getElementById('save').addEventListener('click', function () {
         let save_name = prompt('Save name: ');
         if ((save_name != '') && (save_name != null)) {

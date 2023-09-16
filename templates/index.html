@@ -19,16 +19,28 @@
     </select>
   </div>
   <div id="draw_buttons">
+      <label for="terrain_dropdown">Terrain Type</label>
+      <select id="terrain_dropdown"></select>
+      <label for="settlement_dropdown">Settlement</label>
+      <select id="settlement_dropdown"></select>
+      <label for="visibility_dropdown">Visibility</label>
+      <select id="visibility_dropdown">
+          <option value="false">DM Only</option>
+          <option value="true">Players + DM</option>
+      </select>
   </div>
   <div id="display_buttons">
-    <input type="checkbox" id="coordinates_checkbox" name="coordinates_checkbox">
-    <label for="coordinates_checkbox">Show Coordinates</label>
-    <input type="checkbox" id="terrain_checkbox" name="terrain_checkbox" checked>
-    <label for="terrain_checkbox">Show Terrain</label>
-    <input type="checkbox" id="player_view_checkbox">
-    <label for="player_view_checkbox">Player View</label>
-    <button type="button" id="player_visibility">Player Visible</button>
-    <button type="button" id="dm_visibility">DM Visible</button>
+        <input type="checkbox" id="coordinates_checkbox" name="coordinates_checkbox">
+        <label for="coordinates_checkbox">Show Coordinates</label>
+        <input type="checkbox" id="terrain_checkbox" name="terrain_checkbox" checked>
+        <label for="terrain_checkbox">Show Terrain</label>
+        <input type="checkbox" id="settlement_checkbox" checked>
+        <label for="settlement_checkbox">Show Settlements</label>
+        <input type="checkbox" id="settlement_name_checkbox" checked>
+        <label for="settlement_name_checkbox">Show Settlement Names</label>
+        <input type="checkbox" id="player_view_checkbox">
+        <label for="player_view_checkbox">Player View</label>
+        <button type="button" id="hex_info">Hex Info</button>
   </div>
     <form id="encounter_ui">
         <label for="party_level">Party Level:</label>
@@ -52,7 +64,6 @@
     <div id="encounter_display">
         <h4>Encounter</h4>
     </div>
-    <object data="{{url_for('static', filename='images/temple.svg')}}" height="50"> </object>
 </header>
 <body>
   <canvas id="hexcanvas" width="600" height="400"></canvas>

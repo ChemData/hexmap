@@ -12,7 +12,6 @@ def index():
     return render_template('index.html')
 
 
-
 @app.route('/save', methods=['POST'])
 def save_map():
     data = request.form
@@ -57,7 +56,6 @@ def delete_save():
 @app.route('/encounter', methods=['GET'])
 def encounter():
     data = request.args
-    print(data)
     party = int(data['party_size'])*[int(data['party_level'])]
     primary_enemy = data['primary_enemy']
     if primary_enemy == "":
@@ -70,12 +68,12 @@ def encounter():
     encounter_html = f'<h3>{difficulty.capitalize()} {mob_type.capitalize()}</h3>\n' + encounter_html
     return jsonify(encounter_html)
 
+
 @app.route('/mob_set_names', methods=['GET'])
 def mob_set_names():
     set_names = [(key, x.name) for key, x in generator.MOB_SETS.items()]
     set_names.sort(key=lambda x: x[1])
     output = [{'value': x[0], 'name': x[1]} for x in set_names]
-    print(output)
     return jsonify(output)
 
 
