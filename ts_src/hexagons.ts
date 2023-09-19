@@ -8,14 +8,33 @@ namespace HexDisplay {
         "empty": "#ffffff"
     }
 
+    let SETTLEMENTS = {
+        'temple': {
+            'name': 'Temple',
+            'icon_path': 'temple.svg'
+        },
+        'castle': {
+            'name': 'Castle',
+            'icon_path': 'castle.svg'
+        }
+    }
+
+    for (let k in SETTLEMENTS) {
+        let new_image = new Image()
+        new_image.src = 'static/images/' + SETTLEMENTS[k]['icon_path']
+        SETTLEMENTS[k]['icon'] = new_image
+    }
+
     type Cursor = {
         function: (Function | null)
         trigger_on_move: boolean
+        edits: boolean
     }
 
     type Brush = {
         property: (string | null)
         value: (string | boolean)
+
     }
 
     type Hex = {
@@ -69,6 +88,16 @@ namespace HexDisplay {
             ctx.font = `${Math.floor(0.3*grid_view.scale)}px Arial`;
             ctx.fillStyle = 'black'
             ctx.fillText(coordinate_label, x-grid_view.scale*0.4, y+grid_view.scale*0.4*HEX_HEIGHT)
+        }
+        if (hexagon.settlement != null) {
+            if (grid_view.show_settlements) {
+                ctx.drawImage(SETTLEMENTS[hexagon.settlement.type]['icon'], x - grid_view.scale * 0.4, y - grid_view.scale * 0.4, grid_view.scale, grid_view.scale)
+            }
+            if (grid_view.show_settlement_names) {
+                ctx.font = `${Math.floor(0.3*grid_view.scale)}px Arial`;
+                ctx.fillStyle = 'black'
+                ctx.fillText(hexagon.settlement.name, x-grid_view.scale*0.5, y-grid_view.scale*0.3*HEX_HEIGHT)
+            }
         }
     }
     function DrawHexagon(x: number, y: number, s: number, color: string, ctx: CanvasRenderingContext2D, border_color: string='black'): void {
@@ -282,8 +311,7 @@ namespace HexDisplay {
     function ClickCoordinates(event) {
         let bounds = CANVAS.getBoundingClientRect();
         let pt = {'x': event.clientX - bounds.left, 'y': event.clientY - bounds.top}
-        let coordinates = pixel_to_normal(pt)
-        return coordinates
+        return pixel_to_normal(pt)
     }
 
     function shape(array: any[][]) {
@@ -297,11 +325,37 @@ namespace HexDisplay {
         show_terrain: boolean,
         show_coordinates: boolean
         player_view: boolean
+        show_settlements: boolean
+        show_settlement_names: boolean
     }
 
     function DefaultView(side_length: number): HexGridView {
         return {'offset_x': side_length, 'offset_y': HEX_HEIGHT / 2 * side_length, 'scale': side_length,
-        'show_terrain': true, 'show_coordinates': false, 'player_view': false}
+        'show_terrain': true, 'show_coordinates': false, 'player_view': false, 'show_settlements': true,
+            'show_settlement_names': true}
+    }
+
+    function paintHex(hex, coord) {
+        hex[CURRENT_BRUSH.property] = CURRENT_BRUSH.value
+        DisplayGrid(HEX_GRID, VIEW, CANVAS)
+    }
+
+    function addSettlement(hex, coord) {
+        if(CURRENT_BRUSH.value == 'delete'){
+            hex.settlement = null
+            DisplayGrid(HEX_GRID, VIEW, CANVAS)
+            return
+        }
+        if(hex.settlement != null){
+            window.alert('A settlement already exists on this hex.')
+            return
+        }
+        let new_name = window.prompt("What would you like to name the new settlement?")
+        if(new_name == null){
+            return
+        }
+        hex.settlement = {'name': new_name, 'type': CURRENT_BRUSH.value}
+        DisplayGrid(HEX_GRID, VIEW, CANVAS)
     }
 
     function zoomIn(redraw: boolean = true, fixed_point: (Point | null) = null) {
@@ -387,6 +441,7 @@ namespace HexDisplay {
     }
 
     function addTerrainButtons() {
+        //I am just keeping this around to see how to programatically generate buttons
         let draw_button_div = document.getElementById("draw_buttons");
         for (let i = 0; i < Object.keys(TERRAIN_COLORS).length; i++) {
             let terrain_type = Object.keys(TERRAIN_COLORS)[i];
@@ -399,11 +454,29 @@ namespace HexDisplay {
             button.addEventListener('click', function () {
                 CURRENT_BRUSH.property = 'terrain';
                 CURRENT_BRUSH.value = terrain_type;
-                CURRENT_CURSOR = 'brush'
+                CURRENT_CURSOR.function = paintHex;
+                CURRENT_CURSOR.trigger_on_move = true;
             });
-
         }
+    }
 
+    function populateTerrainList(){
+        let dropdown = $("#terrain_dropdown")
+        dropdown.empty()
+        for (let i = 0; i < Object.keys(TERRAIN_COLORS).length; i++) {
+            let terrain_type = Object.keys(TERRAIN_COLORS)[i];
+            dropdown.append(`<option value="${terrain_type}">${terrain_type}</option>`)
+        }
+    }
+
+    function populateSettlementList(){
+        let dropdown = $("#settlement_dropdown")
+        dropdown.empty()
+        dropdown.append(`<option value=delete>Delete</option>`)
+        for (let i = 0; i < Object.keys(SETTLEMENTS).length; i++) {
+            let settlement_key = Object.keys(SETTLEMENTS)[i];
+            dropdown.append(`<option value="${settlement_key}">${SETTLEMENTS[settlement_key]['name']}</option>`)
+        }
     }
 
     function populateSaveList(){
@@ -453,19 +526,25 @@ namespace HexDisplay {
         )
     }
 
-    let CURRENT_CURSOR: Cursor = {'purpose': null, 'trigger_on_move': false};
-        let CURRENT_BRUSH: Brush = {'property': null, 'value': false}
+    function editable(): boolean{
+        let edit_checkbox = <HTMLInputElement>document.getElementById('editable_switch')
+        return edit_checkbox.checked
+    }
 
+    let CURRENT_CURSOR: Cursor = {'function': null, 'trigger_on_move': false, 'edits': false};
+    let CURRENT_BRUSH: Brush = {'property': null, 'value': false}
     let HEX_GRID = EmptyHexGrid(20, 30)
-    populateSaveList();
     let CANVAS = <HTMLCanvasElement>document.getElementById("hexcanvas");
     let VIEW = DefaultView(30)
     DisplayGrid(HEX_GRID, VIEW, CANVAS)
-    addTerrainButtons()
+    populateSaveList();
+    populateTerrainList()
+    populateSettlementList()
     populateMobSetNames()
     populateEnvironmentList()
 
     // Event Listeners
+    // Navigation
     document.getElementById('hexcanvas').addEventListener('wheel', function(event){
         event.preventDefault()
         let bounds = CANVAS.getBoundingClientRect();
@@ -479,22 +558,6 @@ namespace HexDisplay {
         }
     })
 
-    document.getElementById('add_left').addEventListener('click', function () {
-        AddColumns(HEX_GRID, 1, true);
-    });
-
-    document.getElementById('add_right').addEventListener('click', function () {
-        AddColumns(HEX_GRID, 1, false);
-    });
-
-    document.getElementById('add_top').addEventListener('click', function () {
-        AddRows(HEX_GRID, 1, true);
-    });
-
-    document.getElementById('add_bottom').addEventListener('click', function () {
-        AddRows(HEX_GRID, 1, false)
-    });
-
     document.addEventListener("keydown", function (event) {
         if (event.key == 'a') {
             shift_hexgrid('left');
@@ -507,27 +570,86 @@ namespace HexDisplay {
         }
     })
 
-    document.getElementById('hexcanvas').addEventListener('mouseup', function(event){
-        let coordinates = ClickCoordinates(event)
-        let hex = HEX_GRID.array[coordinates.row][coordinates.col];
-        CURRENT_CURSOR.function(hex)
-
-    CANVAS.addEventListener('mousemove', function (event) {
-        if (event.buttons == 1) {
-            if (!CURRENT_CURSOR.trigger_on_move) {
-                return
-            }
-            let coordinates = ClickCoordinates(event)
-            let hex = HEX_GRID.array[coordinates.row][coordinates.col];
-            CURRENT_CURSOR.function(hex)
-            } else if (CURRENT_CURSOR == 'brush') {
-                let coordinates = ClickCoordinates(event)
-                HEX_GRID.array[coordinates.row][coordinates.col][CURRENT_BRUSH.property] = CURRENT_BRUSH.value
-                DisplayGrid(HEX_GRID, VIEW, CANVAS)
-            }
-        }
+    // Map Modification
+    document.getElementById('add_left').addEventListener('click', function () {
+        if(!editable()){return}
+        AddColumns(HEX_GRID, 1, true);
     });
 
+    document.getElementById('add_right').addEventListener('click', function () {
+        if(!editable()){return}
+        AddColumns(HEX_GRID, 1, false);
+    });
+
+    document.getElementById('add_top').addEventListener('click', function () {
+        if(!editable()){return}
+        AddRows(HEX_GRID, 1, true);
+    });
+
+    document.getElementById('add_bottom').addEventListener('click', function () {
+        if(!editable()){return}
+        AddRows(HEX_GRID, 1, false)
+    });
+
+    document.getElementById('hexcanvas').addEventListener('mouseup', function(event) {
+        if (CURRENT_CURSOR.edits && !editable()){return}
+        let coordinates = ClickCoordinates(event)
+        let hex = HEX_GRID.array[coordinates.row][coordinates.col];
+        if (hex == null){return}
+        if(CURRENT_CURSOR.function != null){
+            CURRENT_CURSOR.function(hex, coordinates)
+        }
+    })
+
+    document.getElementById('hexcanvas').addEventListener('mousemove', function(event) {
+        if(event.buttons != 1){return}
+        event.preventDefault()
+        if (CURRENT_CURSOR.edits && !editable()){return}
+        if (!CURRENT_CURSOR.trigger_on_move) {
+            return
+        }
+        let coordinates = ClickCoordinates(event)
+        try {
+            let hex = HEX_GRID.array[coordinates.row][coordinates.col];
+        }
+        catch (error) {
+            return
+        }
+        let hex = HEX_GRID.array[coordinates.row][coordinates.col];
+        if (hex == null){return}
+        if(CURRENT_CURSOR.function != null){
+            CURRENT_CURSOR.function(hex, coordinates)
+        }
+    })
+
+    document.getElementById('terrain_dropdown').addEventListener('change', function(){
+        let terrain_type = $("#terrain_dropdown").find(":selected").val().toString()
+        CURRENT_BRUSH.property = 'terrain'
+        CURRENT_BRUSH.value = terrain_type
+        CURRENT_CURSOR.function = paintHex
+        CURRENT_CURSOR.trigger_on_move = true
+        CURRENT_CURSOR.edits = true
+    })
+
+    document.getElementById('settlement_dropdown').addEventListener('change', function(){
+        let settlement_type = $("#settlement_dropdown").find(":selected").val().toString()
+        CURRENT_BRUSH.property = 'settlement'
+        CURRENT_BRUSH.value = settlement_type
+        CURRENT_CURSOR.function = addSettlement
+        CURRENT_CURSOR.trigger_on_move = false
+        CURRENT_CURSOR.edits = true
+    })
+
+    document.getElementById('visibility_dropdown').addEventListener('change', function(){
+        let player_visible = $("#visibility_dropdown").find(":selected").val().toString()
+        CURRENT_BRUSH.property = 'player_visible'
+        CURRENT_BRUSH.value = player_visible == 'true'
+        CURRENT_CURSOR.function = paintHex
+        CURRENT_CURSOR.trigger_on_move = true
+        CURRENT_CURSOR.edits = true
+    })
+
+    // Display Modification
     let coordinates_checkbox = <HTMLInputElement> document.getElementById('coordinates_checkbox');
     coordinates_checkbox.addEventListener('change', function(event){
         VIEW.show_coordinates = this.checked;
@@ -546,22 +668,19 @@ namespace HexDisplay {
         DisplayGrid(HEX_GRID, VIEW, CANVAS);
     })
 
-    document.getElementById('player_visibility').addEventListener('click', function(){
-        CURRENT_BRUSH.property = 'player_visible'
-        CURRENT_BRUSH.value = true
-        CURRENT_CURSOR = 'brush'
+    let settlement_view_checkbox = <HTMLInputElement> document.getElementById('settlement_checkbox')
+    settlement_view_checkbox.addEventListener('change', function(){
+        VIEW.show_settlements = this.checked;
+        DisplayGrid(HEX_GRID, VIEW, CANVAS)
     })
 
-    document.getElementById('dm_visibility').addEventListener('click', function(){
-        CURRENT_BRUSH.property = 'player_visible'
-        CURRENT_BRUSH.value = false
-        CURRENT_CURSOR = 'brush'
+    let settlement_name_checkbox = <HTMLInputElement> document.getElementById('settlement_name_checkbox')
+    settlement_name_checkbox.addEventListener('change', function(){
+        VIEW.show_settlement_names = this.checked;
+        DisplayGrid(HEX_GRID, VIEW, CANVAS)
     })
 
-    document.getElementById('temple').addEventListener('click', function(){
-        CURRENT_BRUSH.property = 'settlement'
-    })
-
+    // Misc
     document.getElementById('encounter_gen').addEventListener('click', function(){
         let party_size = $("#party_size").val()
         let party_level = $("#party_level").val()
@@ -585,6 +704,24 @@ namespace HexDisplay {
         )
     })
 
+    document.getElementById('hex_info').addEventListener('click', function(){
+        CURRENT_CURSOR.function = function(hex, coord){
+            console.log(hex)
+        }
+        CURRENT_CURSOR.trigger_on_move = false
+        CURRENT_CURSOR.edits = false
+    })
+
+    document.getElementById('hex_link').addEventListener('click', function(){
+        CURRENT_CURSOR.function = function(hex, coord: NormalCoord){
+            let url = `http://localhost:8800/doku.php?id=hex:hex_${coord.col+HEX_GRID.offset[0]}_${coord.row+HEX_GRID.offset[1]}`
+            window.open(url, '_blank')
+        }
+        CURRENT_CURSOR.trigger_on_move = false
+        CURRENT_CURSOR.edits = false
+    })
+
+    // Map Storage
     document.getElementById('save').addEventListener('click', function(){
         let save_name = prompt('Save name: ')
         if ((save_name != '') && (save_name != null)){
