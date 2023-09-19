@@ -252,11 +252,11 @@ var HexDisplay;
             'show_terrain': true, 'show_coordinates': false, 'player_view': false, 'show_settlements': true,
             'show_settlement_names': true };
     }
-    function paintHex(hex) {
+    function paintHex(hex, coord) {
         hex[CURRENT_BRUSH.property] = CURRENT_BRUSH.value;
         DisplayGrid(HEX_GRID, VIEW, CANVAS);
     }
-    function addSettlement(hex) {
+    function addSettlement(hex, coord) {
         if (CURRENT_BRUSH.value == 'delete') {
             hex.settlement = null;
             DisplayGrid(HEX_GRID, VIEW, CANVAS);
@@ -419,7 +419,11 @@ var HexDisplay;
             }
         });
     }
-    let CURRENT_CURSOR = { 'function': null, 'trigger_on_move': false };
+    function editable() {
+        let edit_checkbox = document.getElementById('editable_switch');
+        return edit_checkbox.checked;
+    }
+    let CURRENT_CURSOR = { 'function': null, 'trigger_on_move': false, 'edits': false };
     let CURRENT_BRUSH = { 'property': null, 'value': false };
     let HEX_GRID = EmptyHexGrid(20, 30);
     let CANVAS = document.getElementById("hexcanvas");
@@ -461,25 +465,40 @@ var HexDisplay;
     });
     // Map Modification
     document.getElementById('add_left').addEventListener('click', function () {
+        if (!editable()) {
+            return;
+        }
         AddColumns(HEX_GRID, 1, true);
     });
     document.getElementById('add_right').addEventListener('click', function () {
+        if (!editable()) {
+            return;
+        }
         AddColumns(HEX_GRID, 1, false);
     });
     document.getElementById('add_top').addEventListener('click', function () {
+        if (!editable()) {
+            return;
+        }
         AddRows(HEX_GRID, 1, true);
     });
     document.getElementById('add_bottom').addEventListener('click', function () {
+        if (!editable()) {
+            return;
+        }
         AddRows(HEX_GRID, 1, false);
     });
     document.getElementById('hexcanvas').addEventListener('mouseup', function (event) {
+        if (CURRENT_CURSOR.edits && !editable()) {
+            return;
+        }
         let coordinates = ClickCoordinates(event);
         let hex = HEX_GRID.array[coordinates.row][coordinates.col];
         if (hex == null) {
             return;
         }
         if (CURRENT_CURSOR.function != null) {
-            CURRENT_CURSOR.function(hex);
+            CURRENT_CURSOR.function(hex, coordinates);
         }
     });
     document.getElementById('hexcanvas').addEventListener('mousemove', function (event) {
@@ -487,6 +506,9 @@ var HexDisplay;
             return;
         }
         event.preventDefault();
+        if (CURRENT_CURSOR.edits && !editable()) {
+            return;
+        }
         if (!CURRENT_CURSOR.trigger_on_move) {
             return;
         }
@@ -502,7 +524,7 @@ var HexDisplay;
             return;
         }
         if (CURRENT_CURSOR.function != null) {
-            CURRENT_CURSOR.function(hex);
+            CURRENT_CURSOR.function(hex, coordinates);
         }
     });
     document.getElementById('terrain_dropdown').addEventListener('change', function () {
@@ -511,6 +533,7 @@ var HexDisplay;
         CURRENT_BRUSH.value = terrain_type;
         CURRENT_CURSOR.function = paintHex;
         CURRENT_CURSOR.trigger_on_move = true;
+        CURRENT_CURSOR.edits = true;
     });
     document.getElementById('settlement_dropdown').addEventListener('change', function () {
         let settlement_type = $("#settlement_dropdown").find(":selected").val().toString();
@@ -518,6 +541,7 @@ var HexDisplay;
         CURRENT_BRUSH.value = settlement_type;
         CURRENT_CURSOR.function = addSettlement;
         CURRENT_CURSOR.trigger_on_move = false;
+        CURRENT_CURSOR.edits = true;
     });
     document.getElementById('visibility_dropdown').addEventListener('change', function () {
         let player_visible = $("#visibility_dropdown").find(":selected").val().toString();
@@ -525,6 +549,7 @@ var HexDisplay;
         CURRENT_BRUSH.value = player_visible == 'true';
         CURRENT_CURSOR.function = paintHex;
         CURRENT_CURSOR.trigger_on_move = true;
+        CURRENT_CURSOR.edits = true;
     });
     // Display Modification
     let coordinates_checkbox = document.getElementById('coordinates_checkbox');
@@ -573,10 +598,19 @@ var HexDisplay;
         });
     });
     document.getElementById('hex_info').addEventListener('click', function () {
-        CURRENT_CURSOR.function = function (hex) {
+        CURRENT_CURSOR.function = function (hex, coord) {
             console.log(hex);
         };
         CURRENT_CURSOR.trigger_on_move = false;
+        CURRENT_CURSOR.edits = false;
+    });
+    document.getElementById('hex_link').addEventListener('click', function () {
+        CURRENT_CURSOR.function = function (hex, coord) {
+            let url = `http://localhost:8800/doku.php?id=hex:hex_${coord.col + HEX_GRID.offset[0]}_${coord.row + HEX_GRID.offset[1]}`;
+            window.open(url, '_blank');
+        };
+        CURRENT_CURSOR.trigger_on_move = false;
+        CURRENT_CURSOR.edits = false;
     });
     // Map Storage
     document.getElementById('save').addEventListener('click', function () {

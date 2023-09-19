@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="static/css/styles.css" />
   <title>Hexmap display</title>
 
 </head>
@@ -28,6 +29,7 @@
           <option value="false">DM Only</option>
           <option value="true">Players + DM</option>
       </select>
+    <input type="checkbox" id="editable_switch" class="switch"><label for="editable_switch">Edit</label>
   </div>
   <div id="display_buttons">
         <input type="checkbox" id="coordinates_checkbox" name="coordinates_checkbox">
@@ -41,6 +43,7 @@
         <input type="checkbox" id="player_view_checkbox">
         <label for="player_view_checkbox">Player View</label>
         <button type="button" id="hex_info">Hex Info</button>
+      <button type="button" id="hex_link">Hex Link</button>
   </div>
     <form id="encounter_ui">
         <label for="party_level">Party Level:</label>
