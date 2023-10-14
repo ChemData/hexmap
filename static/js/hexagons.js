@@ -1,22 +1,56 @@
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var HexDisplay;
 (function (HexDisplay) {
     let HEX_HEIGHT = Math.pow(3, 0.5);
-    let TERRAIN_COLORS = {
-        "water": "#0076ec",
-        "grass": "#55ff8a",
-        "mountains": "#777777",
-        "desert": "#ece95a",
-        "empty": "#ffffff"
-    };
     let SETTLEMENTS = {
-        'temple': {
-            'name': 'Temple',
-            'icon_path': 'temple.svg'
+        'city': {
+            'name': 'City',
+            'icon_path': 'city.svg'
         },
-        'castle': {
-            'name': 'Castle',
-            'icon_path': 'castle.svg'
-        }
+        'village': {
+            'name': 'Village',
+            'icon_path': 'village.svg'
+        },
+        'monster': {
+            'name': 'Singular Monster',
+            'icon_path': 'monster.svg'
+        },
+        'monster_den': {
+            'name': 'Monster Den',
+            'icon_path': 'monster_den.svg'
+        },
+        'obelisk': {
+            'name': 'Obelisk',
+            'icon_path': 'obelisk.svg'
+        },
+        'wildfolk_camp': {
+            'name': 'Wildfolk Camp',
+            'icon_path': 'wildfolk_camp.svg'
+        },
+        'bandit_camp': {
+            'name': 'Bandit Camp',
+            'icon_path': 'bandit_camp.svg'
+        },
+        'friendly_beast': {
+            'name': 'Friendly Beast',
+            'icon_path': 'friendly_beast.svg'
+        },
+        'anomaly': {
+            'name': 'Anomaly',
+            'icon_path': 'anomaly.svg'
+        },
+        'retreat': {
+            'name': 'Retreat',
+            'icon_path': 'retreat.svg'
+        },
     };
     for (let k in SETTLEMENTS) {
         let new_image = new Image();
@@ -34,7 +68,7 @@ var HexDisplay;
     }
     function RandomHex() {
         let new_hex = EmptyHex();
-        new_hex.terrain = getRandomElement(Object.keys(TERRAIN_COLORS));
+        new_hex.terrain = getRandomElement(Object.keys(TERRAIN_INFO));
         return new_hex;
     }
     function RandomColor() {
@@ -48,11 +82,16 @@ var HexDisplay;
         if (grid_view.player_view && !hexagon.player_visible) {
             return;
         }
-        let color = TERRAIN_COLORS['empty'];
+        let color = TERRAIN_INFO['empty']['color'];
         if (grid_view.show_terrain) {
-            color = TERRAIN_COLORS[hexagon.terrain];
+            color = TERRAIN_INFO[hexagon.terrain]['color'];
         }
         DrawHexagon(x, y, grid_view.scale, color, ctx);
+        if (grid_view.show_terrain) {
+            if ('texture' in TERRAIN_INFO[hexagon.terrain]) {
+                ctx.drawImage(TERRAIN_INFO[hexagon.terrain]['texture'], x - grid_view.scale * 0.5, y - grid_view.scale * 0.5, grid_view.scale, grid_view.scale);
+            }
+        }
         if (grid_view.show_coordinates) {
             ctx.font = `${Math.floor(0.3 * grid_view.scale)}px Arial`;
             ctx.fillStyle = 'black';
@@ -60,7 +99,7 @@ var HexDisplay;
         }
         if (hexagon.settlement != null) {
             if (grid_view.show_settlements) {
-                ctx.drawImage(SETTLEMENTS[hexagon.settlement.type]['icon'], x - grid_view.scale * 0.4, y - grid_view.scale * 0.4, grid_view.scale, grid_view.scale);
+                ctx.drawImage(SETTLEMENTS[hexagon.settlement.type]['icon'], x - grid_view.scale * 0.4, y - grid_view.scale * 0.4, grid_view.scale * 0.8, grid_view.scale * 0.8);
             }
             if (grid_view.show_settlement_names) {
                 ctx.font = `${Math.floor(0.3 * grid_view.scale)}px Arial`;
@@ -354,8 +393,8 @@ var HexDisplay;
     function addTerrainButtons() {
         //I am just keeping this around to see how to programatically generate buttons
         let draw_button_div = document.getElementById("draw_buttons");
-        for (let i = 0; i < Object.keys(TERRAIN_COLORS).length; i++) {
-            let terrain_type = Object.keys(TERRAIN_COLORS)[i];
+        for (let i = 0; i < Object.keys(TERRAIN_INFO).length; i++) {
+            let terrain_type = Object.keys(TERRAIN_INFO)[i];
             let button_name = `${terrain_type}_button`;
             let button = document.createElement("BUTTON");
             let text = document.createTextNode(terrain_type);
@@ -368,14 +407,6 @@ var HexDisplay;
                 CURRENT_CURSOR.function = paintHex;
                 CURRENT_CURSOR.trigger_on_move = true;
             });
-        }
-    }
-    function populateTerrainList() {
-        let dropdown = $("#terrain_dropdown");
-        dropdown.empty();
-        for (let i = 0; i < Object.keys(TERRAIN_COLORS).length; i++) {
-            let terrain_type = Object.keys(TERRAIN_COLORS)[i];
-            dropdown.append(`<option value="${terrain_type}">${terrain_type}</option>`);
         }
     }
     function populateSettlementList() {
@@ -423,14 +454,32 @@ var HexDisplay;
         let edit_checkbox = document.getElementById('editable_switch');
         return edit_checkbox.checked;
     }
+    let CANVAS = document.getElementById("hexcanvas");
     let CURRENT_CURSOR = { 'function': null, 'trigger_on_move': false, 'edits': false };
     let CURRENT_BRUSH = { 'property': null, 'value': false };
     let HEX_GRID = EmptyHexGrid(20, 30);
-    let CANVAS = document.getElementById("hexcanvas");
     let VIEW = DefaultView(30);
-    DisplayGrid(HEX_GRID, VIEW, CANVAS);
+    let TERRAIN_INFO;
+    function loadJSONFile() {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const response = yield fetch('../static/info/terrain.json');
+                TERRAIN_INFO = yield response.json();
+                for (let k in TERRAIN_INFO) {
+                    if ('texture' in TERRAIN_INFO[k]) {
+                        let new_image = new Image();
+                        new_image.src = 'static/images/terrain/' + TERRAIN_INFO[k]['texture'] + '.svg';
+                        TERRAIN_INFO[k]['texture'] = new_image;
+                    }
+                }
+            }
+            catch (error) {
+                console.error("error loading JSON file:", error);
+            }
+        });
+    }
+    loadJSONFile();
     populateSaveList();
-    populateTerrainList();
     populateSettlementList();
     populateMobSetNames();
     populateEnvironmentList();
@@ -595,6 +644,8 @@ var HexDisplay;
             let div = document.getElementById("encounter_display");
             div.replaceChildren();
             div.innerHTML += data;
+        }).fail(function (data, error) {
+            alert(data['responseText']);
         });
     });
     document.getElementById('hex_info').addEventListener('click', function () {
@@ -606,7 +657,7 @@ var HexDisplay;
     });
     document.getElementById('hex_link').addEventListener('click', function () {
         CURRENT_CURSOR.function = function (hex, coord) {
-            let url = `http://localhost:8800/doku.php?id=hex:hex_${coord.col + HEX_GRID.offset[0]}_${coord.row + HEX_GRID.offset[1]}`;
+            let url = `http://192.168.4.106:8800/doku.php?id=hex:hex_${coord.col + HEX_GRID.offset[0]}_${coord.row + HEX_GRID.offset[1]}`;
             window.open(url, '_blank');
         };
         CURRENT_CURSOR.trigger_on_move = false;
@@ -633,5 +684,28 @@ var HexDisplay;
         $.post('delete_save', { 'to_delete': $("#saved_maps_dropdown").find(":selected").text() }, function (data, alert) {
         });
         populateSaveList();
+    });
+    document.getElementById('new_map').addEventListener('click', function () {
+        if (!editable()) {
+            return;
+        }
+        document.getElementById('newMapModal').style.display = "block";
+        document.getElementById('overlay').style.display = "block";
+    });
+    function hideNewMapModal() {
+        document.getElementById('newMapModal').style.display = "none";
+        document.getElementById('overlay').style.display = "none";
+        document.getElementById('n_cols_input').value = "10";
+        document.getElementById('n_rows_input').value = "10";
+    }
+    document.getElementById('newMapCancelButton').addEventListener('click', function () {
+        hideNewMapModal();
+    });
+    document.getElementById("newMapSubmitButton").addEventListener("click", function () {
+        let n_cols = Number(document.getElementById('n_cols_input').value);
+        let n_rows = Number(document.getElementById('n_rows_input').value);
+        HEX_GRID = EmptyHexGrid(n_rows, n_cols);
+        DisplayGrid(HEX_GRID, VIEW, CANVAS);
+        hideNewMapModal();
     });
 })(HexDisplay || (HexDisplay = {}));

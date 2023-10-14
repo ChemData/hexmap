@@ -251,5 +251,34 @@
             "hyena",
             "giant hyena"
         ]
+    },
+    "plants": {
+        "name": "plants",
+        "mobs": [
+            "awakened shrub",
+            "awakened tree",
+            "shambling mound",
+            "treant",
+            "twig blight",
+            "vine blight"
+        ]
+    },
+    "fungi": {
+        "name": "fungi",
+        "mobs": [
+            "myconid adult",
+            "myconid sovereign",
+            "myconid sprout",
+            "violet fungus",
+            "shrieker"
+        ]
+    },
+    "hippos": {
+        "name": "hippos",
+        "mobs": [
+            "juvenile hippo",
+            "adult hippo",
+            "alpha hippo"
+        ]
     }
 }

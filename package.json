@@ -3,6 +3,7 @@
     "jquery": "^3.7.1"
   },
   "devDependencies": {
-    "@types/jquery": "^3.5.18"
+    "@types/jquery": "^3.5.18",
+    "@types/node": "^20.6.4"
   }
 }

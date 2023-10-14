@@ -1,0 +1,104 @@
+{
+    "farmland": {
+        "color": "#a0d76b",
+        "display_name": "Farmland"
+    },
+    "cultivated_farmland": {
+        "color": "#a0d76b",
+        "display_name": "Cultivated Farmland"
+    },
+    "deep_ocean": {
+        "color": "#003366",
+        "display_name": "Deep Ocean"
+    },
+    "deep_sea": {
+        "color": "#6699cc",
+        "display_name": "Deep Sea"
+    },
+    "sea": {
+        "color": "#8cb2d8",
+        "display_name": "Sea"
+    },
+    "reef": {
+        "color": "#99ccff",
+        "texture": "reef",
+        "display_name": "Reef"
+    },
+    "forested_hills": {
+        "color": "#8ebd52",
+        "texture": "hills",
+        "display_name": "Forested Hills"
+    },
+    "marsh": {
+        "color": "#84ce94",
+        "display_name": "Marsh"
+    },
+    "light_evergreen": {
+        "color": "#39912d",
+        "display_name": "Light Evergreen"
+    },
+    "evergreen_hills": {
+        "color": "#488a21",
+        "texture": "hills",
+        "display_name": "Evergreen Hills"
+    },
+    "evergreen_mountain": {
+        "color": "#577621",
+        "texture": "mountains",
+        "display_name": "Evergreen Mountain"
+    },
+    "grassland": {
+        "color": "#e7f79c",
+        "display_name": "Grassland"
+    },
+    "grazing_land": {
+        "color": "#c8ee8c",
+        "display_name": "Grazing Land"
+    },
+    "mountain": {
+        "color": "#c68f00",
+        "texture": "mountains",
+        "display_name": "Mountain"
+    },
+    "snowcapped_mountain": {
+        "color": "#c68f00",
+        "texture": "mountains",
+        "display_name": "Snowcapped Mountain"
+    },
+    "shrubland": {
+        "color": "#dadc80",
+        "display_name": "Shrubland"
+    },
+    "shrubland_hills": {
+        "color": "#dadc80",
+        "texture": "hills",
+        "display_name": "Shrubland Hills"
+    },
+    "grassy_hills": {
+        "color": "#c3d263",
+        "texture": "hills",
+        "display_name": "Grassy Hills"
+    },
+    "hills": {
+        "color": "#e8ce59",
+        "texture": "hills",
+        "display_name": "Hills"
+    },
+    "light_forest": {
+        "color": "#95c663",
+        "display_name": "Light Forest"
+    },
+    "sandy_desert": {
+        "color": "#f8f085",
+        "display_name": "Sandy Desert"
+    },
+    "forested_mountain": {
+        "color": "#86a233",
+        "texture": "mountains",
+        "display_name": "Forested Mountain"
+    },
+    "empty": {
+        "color": "#ffffff",
+        "display_name": "Empty"
+    }
+}

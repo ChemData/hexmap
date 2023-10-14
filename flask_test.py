@@ -6,10 +6,13 @@ from encounter_generation import generator
 
 app = Flask(__name__)
 
+with open("static/info/terrain.json", 'r') as f:
+    TERRAIN = json.load(f)
+
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', terrain_list=[(key, value['display_name']) for key, value in TERRAIN.items()])
 
 
 @app.route('/save', methods=['POST'])
@@ -63,6 +66,8 @@ def encounter():
     env_type = data['environment_type']
     if env_type == "":
         env_type = None
+    if primary_enemy is None and env_type is None:
+        return 'You must select either an environment or primary enemy.', 400
     new_encounter, difficulty, mob_type = generator.hex_encounter(data['difficulty'], party, primary_enemy, environment_type=env_type)
     encounter_html = new_encounter.html_with_links()
     encounter_html = f'<h3>{difficulty.capitalize()} {mob_type.capitalize()}</h3>\n' + encounter_html
@@ -83,6 +88,12 @@ def environment_set_names():
     set_names.sort(key=lambda x: x[1])
     output = [{'value': x[0], 'name': x[1]} for x in set_names]
     return jsonify(output)
+
+
+@app.route('/terrain', methods=['GET'])
+def terrain():
+    data = dict([(x['id'], x['color']) for x in TERRAIN])
+    return jsonify(data)
 
 
 if __name__ == '__main__':

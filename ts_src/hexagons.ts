@@ -1,22 +1,47 @@
 namespace HexDisplay {
     let HEX_HEIGHT = 3 ** 0.5
-    let TERRAIN_COLORS = {
-        "water": "#0076ec",
-        "grass": "#55ff8a",
-        "mountains": "#777777",
-        "desert": "#ece95a",
-        "empty": "#ffffff"
-    }
 
     let SETTLEMENTS = {
-        'temple': {
-            'name': 'Temple',
-            'icon_path': 'temple.svg'
+        'city': {
+            'name': 'City',
+            'icon_path': 'city.svg'
         },
-        'castle': {
-            'name': 'Castle',
-            'icon_path': 'castle.svg'
-        }
+        'village': {
+            'name': 'Village',
+            'icon_path': 'village.svg'
+        },
+        'monster': {
+            'name': 'Singular Monster',
+            'icon_path': 'monster.svg'
+        },
+        'monster_den': {
+            'name': 'Monster Den',
+            'icon_path': 'monster_den.svg'
+        },
+        'obelisk': {
+            'name': 'Obelisk',
+            'icon_path': 'obelisk.svg'
+        },
+        'wildfolk_camp': {
+            'name': 'Wildfolk Camp',
+            'icon_path': 'wildfolk_camp.svg'
+        },
+        'bandit_camp': {
+            'name': 'Bandit Camp',
+            'icon_path': 'bandit_camp.svg'
+        },
+        'friendly_beast': {
+            'name': 'Friendly Beast',
+            'icon_path': 'friendly_beast.svg'
+        },
+        'anomaly': {
+            'name': 'Anomaly',
+            'icon_path': 'anomaly.svg'
+        },
+        'retreat': {
+            'name': 'Retreat',
+            'icon_path': 'retreat.svg'
+        },
     }
 
     for (let k in SETTLEMENTS) {
@@ -61,7 +86,7 @@ namespace HexDisplay {
 
     function RandomHex(): Hex {
         let new_hex = EmptyHex();
-        new_hex.terrain = getRandomElement(Object.keys(TERRAIN_COLORS));
+        new_hex.terrain = getRandomElement(Object.keys(TERRAIN_INFO));
         return new_hex
     }
 
@@ -79,11 +104,16 @@ namespace HexDisplay {
         if (grid_view.player_view && !hexagon.player_visible) {
             return
         }
-        let color = TERRAIN_COLORS['empty']
+        let color = TERRAIN_INFO['empty']['color']
         if (grid_view.show_terrain) {
-            color = TERRAIN_COLORS[hexagon.terrain]
+            color = TERRAIN_INFO[hexagon.terrain]['color']
         }
         DrawHexagon(x, y, grid_view.scale, color, ctx)
+        if (grid_view.show_terrain) {
+            if ('texture' in TERRAIN_INFO[hexagon.terrain]){
+                ctx.drawImage(TERRAIN_INFO[hexagon.terrain]['texture'], x - grid_view.scale * 0.5, y - grid_view.scale * 0.5, grid_view.scale, grid_view.scale)
+            }
+        }
         if (grid_view.show_coordinates) {
             ctx.font = `${Math.floor(0.3*grid_view.scale)}px Arial`;
             ctx.fillStyle = 'black'
@@ -91,7 +121,7 @@ namespace HexDisplay {
         }
         if (hexagon.settlement != null) {
             if (grid_view.show_settlements) {
-                ctx.drawImage(SETTLEMENTS[hexagon.settlement.type]['icon'], x - grid_view.scale * 0.4, y - grid_view.scale * 0.4, grid_view.scale, grid_view.scale)
+                ctx.drawImage(SETTLEMENTS[hexagon.settlement.type]['icon'], x - grid_view.scale * 0.4, y - grid_view.scale * 0.4, grid_view.scale*0.8, grid_view.scale*0.8)
             }
             if (grid_view.show_settlement_names) {
                 ctx.font = `${Math.floor(0.3*grid_view.scale)}px Arial`;
@@ -443,8 +473,8 @@ namespace HexDisplay {
     function addTerrainButtons() {
         //I am just keeping this around to see how to programatically generate buttons
         let draw_button_div = document.getElementById("draw_buttons");
-        for (let i = 0; i < Object.keys(TERRAIN_COLORS).length; i++) {
-            let terrain_type = Object.keys(TERRAIN_COLORS)[i];
+        for (let i = 0; i < Object.keys(TERRAIN_INFO).length; i++) {
+            let terrain_type = Object.keys(TERRAIN_INFO)[i];
             let button_name = `${terrain_type}_button`
             let button = document.createElement("BUTTON");
             let text = document.createTextNode(terrain_type)
@@ -457,15 +487,6 @@ namespace HexDisplay {
                 CURRENT_CURSOR.function = paintHex;
                 CURRENT_CURSOR.trigger_on_move = true;
             });
-        }
-    }
-
-    function populateTerrainList(){
-        let dropdown = $("#terrain_dropdown")
-        dropdown.empty()
-        for (let i = 0; i < Object.keys(TERRAIN_COLORS).length; i++) {
-            let terrain_type = Object.keys(TERRAIN_COLORS)[i];
-            dropdown.append(`<option value="${terrain_type}">${terrain_type}</option>`)
         }
     }
 
@@ -526,19 +547,35 @@ namespace HexDisplay {
         )
     }
 
+
     function editable(): boolean{
         let edit_checkbox = <HTMLInputElement>document.getElementById('editable_switch')
         return edit_checkbox.checked
     }
-
+    let CANVAS = <HTMLCanvasElement>document.getElementById("hexcanvas");
     let CURRENT_CURSOR: Cursor = {'function': null, 'trigger_on_move': false, 'edits': false};
     let CURRENT_BRUSH: Brush = {'property': null, 'value': false}
     let HEX_GRID = EmptyHexGrid(20, 30)
-    let CANVAS = <HTMLCanvasElement>document.getElementById("hexcanvas");
     let VIEW = DefaultView(30)
-    DisplayGrid(HEX_GRID, VIEW, CANVAS)
-    populateSaveList();
-    populateTerrainList()
+    let TERRAIN_INFO: any;
+
+    async function loadJSONFile() {
+        try {
+            const response = await fetch('../static/info/terrain.json')
+            TERRAIN_INFO = await response.json();
+            for (let k in TERRAIN_INFO) {
+                if ('texture' in TERRAIN_INFO[k]){
+                    let new_image = new Image()
+                    new_image.src = 'static/images/terrain/' + TERRAIN_INFO[k]['texture'] + '.svg'
+                    TERRAIN_INFO[k]['texture'] = new_image
+                }
+            }
+        } catch (error){
+            console.error("error loading JSON file:", error)
+        }
+    }
+    loadJSONFile()
+    populateSaveList()
     populateSettlementList()
     populateMobSetNames()
     populateEnvironmentList()
@@ -701,7 +738,9 @@ namespace HexDisplay {
                 div.replaceChildren()
                 div.innerHTML += data
             }
-        )
+        ).fail(function(data, error){
+            alert(data['responseText']);
+        })
     })
 
     document.getElementById('hex_info').addEventListener('click', function(){
@@ -714,7 +753,7 @@ namespace HexDisplay {
 
     document.getElementById('hex_link').addEventListener('click', function(){
         CURRENT_CURSOR.function = function(hex, coord: NormalCoord){
-            let url = `http://localhost:8800/doku.php?id=hex:hex_${coord.col+HEX_GRID.offset[0]}_${coord.row+HEX_GRID.offset[1]}`
+            let url = `http://192.168.4.106:8800/doku.php?id=hex:hex_${coord.col+HEX_GRID.offset[0]}_${coord.row+HEX_GRID.offset[1]}`
             window.open(url, '_blank')
         }
         CURRENT_CURSOR.trigger_on_move = false
@@ -750,6 +789,33 @@ namespace HexDisplay {
             }
         )
         populateSaveList()
+    })
+
+    document.getElementById('new_map').addEventListener('click', function(){
+        if(!editable()){
+            return
+        }
+        document.getElementById('newMapModal').style.display = "block"
+        document.getElementById('overlay').style.display = "block"
+    })
+    function hideNewMapModal(){
+        document.getElementById('newMapModal').style.display = "none";
+        document.getElementById('overlay').style.display = "none";
+        (document.getElementById('n_cols_input') as HTMLInputElement).value = "10";
+        (document.getElementById('n_rows_input') as HTMLInputElement).value = "10";
+    }
+
+    document.getElementById('newMapCancelButton').addEventListener('click', function(){
+        hideNewMapModal()
+    })
+
+    document.getElementById("newMapSubmitButton").addEventListener("click", function (){
+
+        let n_cols = Number((document.getElementById('n_cols_input') as HTMLInputElement).value);
+        let n_rows = Number((document.getElementById('n_rows_input') as HTMLInputElement).value);
+        HEX_GRID = EmptyHexGrid(n_rows, n_cols)
+        DisplayGrid(HEX_GRID, VIEW, CANVAS)
+        hideNewMapModal();
     })
 }
 
