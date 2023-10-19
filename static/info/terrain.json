@@ -9,20 +9,24 @@
     },
     "deep_ocean": {
         "color": "#003366",
-        "display_name": "Deep Ocean"
+        "display_name": "Deep Ocean",
+        "ocean": true
     },
     "deep_sea": {
         "color": "#6699cc",
-        "display_name": "Deep Sea"
+        "display_name": "Deep Sea",
+        "ocean": true
     },
     "sea": {
         "color": "#8cb2d8",
-        "display_name": "Sea"
+        "display_name": "Sea",
+        "ocean": true
     },
     "reef": {
         "color": "#99ccff",
         "texture": "reef",
-        "display_name": "Reef"
+        "display_name": "Reef",
+        "ocean": true
     },
     "forested_hills": {
         "color": "#8ebd52",

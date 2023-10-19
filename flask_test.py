@@ -3,6 +3,7 @@ import json
 import flask
 from flask import Flask, render_template, jsonify, redirect, url_for, request, after_this_request
 from encounter_generation import generator
+from map_update import update_map
 
 app = Flask(__name__)
 
@@ -32,8 +33,9 @@ def load_map():
     save_name = data['save_name']
     try:
         with open(f'storage/{save_name}.txt', 'r') as f:
-            map_string = f.read()
-        return jsonify(map_string)
+            map_data = json.load(f)
+        updated_map = update_map(map_data)
+        return jsonify(json.dumps(updated_map))
     except FileNotFoundError:
         return jsonify(False)
 

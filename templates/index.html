@@ -18,7 +18,8 @@
     <button type="button" id="delete">Delete</button>
     <select id="saved_maps_dropdown">
     </select>
-      <button type="button" id="new_map">New</button>
+    <button type="button" id="new_map">New</button>
+    <button type="button" id="test">Test</button>
   </div>
 <div id="newMapModal" class="modal">
   <div class="modal-content">
@@ -40,6 +41,11 @@
           {% for t in terrain_list %}
           <option value={{t[0]}}>{{t[1]}}</option>
           {% endfor %}
+      </select>
+      <label for="river_dropdown">River</label>
+      <select id="river_dropdown">
+          <option value="river">River</option>
+          <option value="clear">Delete</option>
       </select>
       <label for="settlement_dropdown">Settlement</label>
       <select id="settlement_dropdown"></select>
