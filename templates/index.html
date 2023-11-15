@@ -44,8 +44,17 @@
       </select>
       <label for="river_dropdown">River</label>
       <select id="river_dropdown">
-          <option value="river">River</option>
-          <option value="clear">Delete</option>
+          <option value="none">Delete</option>
+          {% for r in river_list %}
+          <option value={{r[0]}}>{{r[1]}}</option>
+          {% endfor %}}
+      </select>
+      <label for="road_dropdown">Road</label>
+      <select id="road_dropdown">
+          <option value="none">Delete</option>
+          {% for r in road_list %}
+          <option value={{r[0]}}>{{r[1]}}</option>
+          {% endfor %}}
       </select>
       <label for="settlement_dropdown">Settlement</label>
       <select id="settlement_dropdown"></select>
@@ -61,6 +70,10 @@
         <label for="coordinates_checkbox">Show Coordinates</label>
         <input type="checkbox" id="terrain_checkbox" name="terrain_checkbox" checked>
         <label for="terrain_checkbox">Show Terrain</label>
+      <input type="checkbox" id="river_checkbox" checked>
+        <label for="river_checkbox">Show Rivers</label>
+      <input type="checkbox" id="road_checkbox" checked>
+        <label for="road_checkbox">Show Roads</label>
         <input type="checkbox" id="settlement_checkbox" checked>
         <label for="settlement_checkbox">Show Settlements</label>
         <input type="checkbox" id="settlement_name_checkbox" checked>
@@ -94,7 +107,7 @@
     </div>
 </header>
 <body>
-  <canvas id="hexcanvas" width="600" height="400"></canvas>
+  <canvas id="hexcanvas" width="1000" height="650"></canvas>
   <script src="../static/js/code.jquery.com_jquery-3.7.0.js"></script>
   <script type="module" src="../static/js/hexagons.js"></script>
 </body>

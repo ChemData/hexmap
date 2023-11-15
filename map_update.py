@@ -14,6 +14,10 @@ def update_map(map_data: dict):
             hexa = map_data['array'][row][col]
             if 'position' not in hexa:
                 hexa['position'] = {'col': col+map_data['offset'][0], 'row': row+map_data['offset'][1]}
-            if 'rivers' not in hexa or not isinstance(hexa['rivers'], list):
-                hexa['rivers'] = [False] * 6
+            if 'rivers.json' not in hexa or not isinstance(hexa['rivers.json'], list):
+                hexa['rivers.json'] = ['none'] * 6
+            if not isinstance(hexa['rivers.json'][0], str):
+                hexa['rivers.json'] = [{True: 'river', False: 'none'}[x] for x in hexa['rivers.json']]
+            if 'roads' not in hexa or not isinstance(hexa['roads'], list) or not isinstance(hexa['roads'][0], str):
+                hexa['roads'] = ['none'] * 6
     return map_data

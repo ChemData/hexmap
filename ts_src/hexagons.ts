@@ -68,7 +68,8 @@ namespace HexDisplay {
         primary_creature: (string | null),
         climate: (string | null),
         settlement: (Settlement | null),
-        rivers: [boolean, boolean, boolean, boolean, boolean, boolean],
+        rivers: [string, string, string, string, string, string],
+        roads: [string, string, string, string, string, string],
         position: NormalCoord
     }
 
@@ -84,7 +85,8 @@ namespace HexDisplay {
             'primary_creature': null,
             'climate': null,
             'settlement': null,
-            'rivers': [false, false, false, false, false, false],
+            'rivers': ['none', 'none', 'none', 'none', 'none', 'none'],
+            'roads': ['none', 'none', 'none', 'none', 'none', 'none'],
             'position': {'col': position[0], 'row': position[1]}}
     }
 
@@ -124,6 +126,21 @@ namespace HexDisplay {
             ctx.fillStyle = 'black'
             ctx.fillText(coordinate_label, x-grid_view.scale*0.4, y+grid_view.scale*0.4*HEX_HEIGHT)
         }
+        for (let direction = 0; direction < hex.rivers.length; direction ++) {
+            if (TERRAIN_INFO[hex.terrain]['ocean']){
+                break
+            }
+            if (hex.rivers[direction] != 'none' && VIEW.show_rivers){
+                console.log(RIVERS)
+                console.log(ROADS)
+                let river_info = RIVERS[hex.rivers[direction]]
+                drawLine(x, y, direction, river_info['color'], river_info['width']*VIEW.scale, ctx)
+            }
+            if (hex.roads[direction] != 'none' && VIEW.show_roads){
+                let road_info = ROADS[hex.roads[direction]]
+                drawLine(x, y, direction, road_info['color'], road_info['width']*VIEW.scale, ctx)
+            }
+        }
         if (hex.settlement != null) {
             if (grid_view.show_settlements) {
                 ctx.drawImage(SETTLEMENTS[hex.settlement.type]['icon'], x - grid_view.scale * 0.4, y - grid_view.scale * 0.4, grid_view.scale*0.8, grid_view.scale*0.8)
@@ -134,26 +151,26 @@ namespace HexDisplay {
                 ctx.fillText(hex.settlement.name, x-grid_view.scale*0.5, y-grid_view.scale*0.3*HEX_HEIGHT)
             }
         }
-        for (let direction = 0; direction < hex.rivers.length; direction ++) {
-            if (!hex.rivers[direction]){continue}
-            if (TERRAIN_INFO[hex.terrain]['ocean']){
-                break
-            }
-            ctx.beginPath()
-            ctx.moveTo(x, y)s
-            ctx.lineTo(x + grid_view.scale * HEX_HEIGHT/2 * Math.sin(direction/3 * Math.PI),
-                y - grid_view.scale * HEX_HEIGHT/2 * Math.cos(direction/3 * Math.PI))
-            ctx.closePath()
-            ctx.strokeStyle = 'blue'
-            ctx.stroke()
-        }
     }
+
+    function drawLine(x: number, y: number, direction: number, color: string, line_width: number, ctx: CanvasRenderingContext2D){
+        ctx.lineWidth = line_width
+        ctx.beginPath()
+        ctx.moveTo(x, y)
+        ctx.lineTo(x + VIEW.scale * HEX_HEIGHT/2 * Math.sin(direction/3 * Math.PI),
+            y - VIEW.scale * HEX_HEIGHT/2 * Math.cos(direction/3 * Math.PI))
+        ctx.closePath()
+        ctx.strokeStyle = color
+        ctx.stroke()
+    }
+
     function DrawHexagon(x: number, y: number, s: number, color: string, ctx: CanvasRenderingContext2D, border_color: string='black'): void {
         let half_height = 3 ** 0.5 / 2;
         let vertexes = [
             [-0.5, -half_height], [0.5, -half_height], [1, 0], [0.5, half_height],
             [-0.5, half_height], [-1, 0]
         ]
+        ctx.lineWidth = 1
         ctx.beginPath()
         ctx.moveTo(x + s * vertexes[0][0], y + s * vertexes[0][1])
         for (let i = 1; i < vertexes.length; i++) {
@@ -409,12 +426,14 @@ namespace HexDisplay {
         player_view: boolean
         show_settlements: boolean
         show_settlement_names: boolean
+        show_rivers: boolean
+        show_roads: boolean
     }
 
     function DefaultView(side_length: number): HexGridView {
         return {'offset_x': side_length, 'offset_y': HEX_HEIGHT / 2 * side_length, 'scale': side_length,
         'show_terrain': true, 'show_coordinates': false, 'player_view': false, 'show_settlements': true,
-            'show_settlement_names': true}
+            'show_settlement_names': true, 'show_roads': true, 'show_rivers': true}
     }
 
     function paintHex(hex) {
@@ -422,17 +441,13 @@ namespace HexDisplay {
         DisplayGrid(HEX_GRID, VIEW, CANVAS)
     }
 
-    function paintRiver(hex) {
+    function paintPath(hex) {
         if(hex == PREVIOUS_HEX){return}
         let movement_direction = movementDirection(PREVIOUS_HEX, hex);
         if (movement_direction == null){return}
-        if (CURRENT_BRUSH.value == "clear") {
-            PREVIOUS_HEX['rivers'][movement_direction[0]] = false;
-            hex['rivers'][movement_direction[1]] = false;
-        } else {
-            PREVIOUS_HEX['rivers'][movement_direction[0]] = true;
-            hex['rivers'][movement_direction[1]] = true;
-        }
+        console.log(CURRENT_BRUSH)
+        PREVIOUS_HEX[CURRENT_BRUSH.property][movement_direction[0]] = CURRENT_BRUSH.value
+        hex[CURRENT_BRUSH.property][movement_direction[1]] = CURRENT_BRUSH.value
         DisplayGrid(HEX_GRID, VIEW, CANVAS)
     }
 
@@ -627,7 +642,7 @@ namespace HexDisplay {
     let TERRAIN_INFO: any;
     let PREVIOUS_HEX: Hex | null = null;
 
-    async function loadJSONFile() {
+    async function loadTerrain() {
         try {
             const response = await fetch('../static/info/terrain.json')
             TERRAIN_INFO = await response.json();
@@ -642,7 +657,30 @@ namespace HexDisplay {
             console.error("error loading JSON file:", error)
         }
     }
-    loadJSONFile()
+
+    async function loadRivers() {
+        try {
+            const response = await fetch('../static/info/rivers.json')
+            RIVERS = await response.json();
+        } catch (error){
+            console.error("error loading JSON file:", error)
+        }
+    }
+    async function loadRoads() {
+        try {
+            const response = await fetch('../static/info/roads.json')
+            ROADS = await response.json();
+        } catch (error){
+            console.error("error loading JSON file:", error)
+        }
+    }
+
+
+    loadTerrain()
+    let RIVERS = {};
+    loadRivers();
+    let ROADS = {};
+    loadRoads();
     populateSaveList()
     populateSettlementList()
     populateMobSetNames()
@@ -744,11 +782,20 @@ namespace HexDisplay {
         CURRENT_CURSOR.edits = true
     })
 
-    document.getElementById('river_dropdown').addEventListener('change', function(){
+    document.getElementById('river_dropdown').addEventListener('click', function(){
         let river_type = (document.getElementById('river_dropdown') as HTMLSelectElement).value;
-        CURRENT_BRUSH.property = 'river'
+        CURRENT_BRUSH.property = 'rivers'
         CURRENT_BRUSH.value = river_type
-        CURRENT_CURSOR.function = paintRiver
+        CURRENT_CURSOR.function = paintPath
+        CURRENT_CURSOR.trigger_on_move = true
+        CURRENT_CURSOR.edits = true
+    })
+
+    document.getElementById('road_dropdown').addEventListener('click', function(){
+        let road_type = (document.getElementById('road_dropdown') as HTMLSelectElement).value;
+        CURRENT_BRUSH.property = 'roads'
+        CURRENT_BRUSH.value = road_type
+        CURRENT_CURSOR.function = paintPath
         CURRENT_CURSOR.trigger_on_move = true
         CURRENT_CURSOR.edits = true
     })
@@ -769,38 +816,38 @@ namespace HexDisplay {
         CURRENT_CURSOR.function = paintHex
         CURRENT_CURSOR.trigger_on_move = true
         CURRENT_CURSOR.edits = true
-    })
+    });
 
     // Display Modification
-    let coordinates_checkbox = <HTMLInputElement> document.getElementById('coordinates_checkbox');
-    coordinates_checkbox.addEventListener('change', function(event){
-        VIEW.show_coordinates = this.checked;
-        DisplayGrid(HEX_GRID, VIEW, CANVAS)
-    } )
-
-    let terrain_checkbox = <HTMLInputElement> document.getElementById('terrain_checkbox');
-    terrain_checkbox.addEventListener('change', function(event){
+    (document.getElementById('terrain_checkbox') as HTMLInputElement).addEventListener('change', function(){
         VIEW.show_terrain = this.checked;
-        DisplayGrid(HEX_GRID, VIEW, CANVAS)
-    } )
-
-    let player_view_checkbox = <HTMLInputElement> document.getElementById("player_view_checkbox")
-    player_view_checkbox.addEventListener('change', function(event){
-        VIEW.player_view = this.checked;
         DisplayGrid(HEX_GRID, VIEW, CANVAS);
-    })
+    });
 
-    let settlement_view_checkbox = <HTMLInputElement> document.getElementById('settlement_checkbox')
-    settlement_view_checkbox.addEventListener('change', function(){
+    (document.getElementById('player_view_checkbox') as HTMLInputElement).addEventListener('change', function(){
+        VIEW.player_view = this.checked;
+        DisplayGrid(HEX_GRID, VIEW, CANVAS)
+    });
+
+    (document.getElementById('settlement_checkbox') as HTMLInputElement).addEventListener('change', function(){
         VIEW.show_settlements = this.checked;
         DisplayGrid(HEX_GRID, VIEW, CANVAS)
-    })
+    });
 
-    let settlement_name_checkbox = <HTMLInputElement> document.getElementById('settlement_name_checkbox')
-    settlement_name_checkbox.addEventListener('change', function(){
+    (document.getElementById('settlement_name_checkbox') as HTMLInputElement).addEventListener('change', function(){
         VIEW.show_settlement_names = this.checked;
         DisplayGrid(HEX_GRID, VIEW, CANVAS)
-    })
+    });
+
+    (document.getElementById('river_checkbox') as HTMLInputElement).addEventListener('change', function(){
+        VIEW.show_rivers = this.checked;
+        DisplayGrid(HEX_GRID, VIEW, CANVAS)
+    });
+
+    (document.getElementById('road_checkbox') as HTMLInputElement).addEventListener('change', function(){
+        VIEW.show_roads = this.checked;
+        DisplayGrid(HEX_GRID, VIEW, CANVAS)
+    });
 
     // Misc
     document.getElementById('encounter_gen').addEventListener('click', function(){
