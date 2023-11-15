@@ -11,7 +11,9 @@
             "ogres",
             "harpies",
             "spiders",
-            "satyrs"
+            "satyrs",
+            "plants",
+            "hippos"
         ]
     },
     "southern_shore": {
@@ -21,7 +23,9 @@
             "coastal_elementals",
             "sahuagin",
             "bandits",
-            "ogres"
+            "ogres",
+            "plants",
+            "hippos"
         ]
     },
     "southern_plains": {
@@ -35,7 +39,8 @@
             "land_elementals",
             "reptiles",
             "ankhegs",
-            "hyenas"
+            "hyenas",
+            "hippos"
         ]
     }
 }

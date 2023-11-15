@@ -1,22 +1,47 @@
 namespace HexDisplay {
     let HEX_HEIGHT = 3 ** 0.5
-    let TERRAIN_COLORS = {
-        "water": "#0076ec",
-        "grass": "#55ff8a",
-        "mountains": "#777777",
-        "desert": "#ece95a",
-        "empty": "#ffffff"
-    }
 
     let SETTLEMENTS = {
-        'temple': {
-            'name': 'Temple',
-            'icon_path': 'temple.svg'
+        'city': {
+            'name': 'City',
+            'icon_path': 'city.svg'
         },
-        'castle': {
-            'name': 'Castle',
-            'icon_path': 'castle.svg'
-        }
+        'village': {
+            'name': 'Village',
+            'icon_path': 'village.svg'
+        },
+        'monster': {
+            'name': 'Singular Monster',
+            'icon_path': 'monster.svg'
+        },
+        'monster_den': {
+            'name': 'Monster Den',
+            'icon_path': 'monster_den.svg'
+        },
+        'obelisk': {
+            'name': 'Obelisk',
+            'icon_path': 'obelisk.svg'
+        },
+        'wildfolk_camp': {
+            'name': 'Wildfolk Camp',
+            'icon_path': 'wildfolk_camp.svg'
+        },
+        'bandit_camp': {
+            'name': 'Bandit Camp',
+            'icon_path': 'bandit_camp.svg'
+        },
+        'friendly_beast': {
+            'name': 'Friendly Beast',
+            'icon_path': 'friendly_beast.svg'
+        },
+        'anomaly': {
+            'name': 'Anomaly',
+            'icon_path': 'anomaly.svg'
+        },
+        'retreat': {
+            'name': 'Retreat',
+            'icon_path': 'retreat.svg'
+        },
     }
 
     for (let k in SETTLEMENTS) {
@@ -42,7 +67,9 @@ namespace HexDisplay {
         player_visible: boolean,
         primary_creature: (string | null),
         climate: (string | null),
-        settlement: (Settlement | null)
+        settlement: (Settlement | null),
+        rivers: [boolean, boolean, boolean, boolean, boolean, boolean],
+        position: NormalCoord
     }
 
     type Settlement = {
@@ -50,18 +77,20 @@ namespace HexDisplay {
         type: string
     }
 
-    function EmptyHex(): Hex {
+    function EmptyHex(position: [number, number] = [0, 0]): Hex {
         return {
             'terrain': 'empty',
             'player_visible': false,
             'primary_creature': null,
             'climate': null,
-            'settlement': null}
+            'settlement': null,
+            'rivers': [false, false, false, false, false, false],
+            'position': {'col': position[0], 'row': position[1]}}
     }
 
-    function RandomHex(): Hex {
-        let new_hex = EmptyHex();
-        new_hex.terrain = getRandomElement(Object.keys(TERRAIN_COLORS));
+    function RandomHex(position: [number, number] = [0, 0]): Hex {
+        let new_hex = EmptyHex(position);
+        new_hex.terrain = getRandomElement(Object.keys(TERRAIN_INFO));
         return new_hex
     }
 
@@ -75,29 +104,48 @@ namespace HexDisplay {
     const getRandomElement = (arr: any[]) =>
         arr[Math.floor(Math.random() * arr.length)]
 
-    function DrawHex(x: number, y: number, hexagon: Hex, grid_view: HexGridView, coordinate_label: string, ctx: CanvasRenderingContext2D) {
-        if (grid_view.player_view && !hexagon.player_visible) {
+    function DrawHex(x: number, y: number, hex: Hex, grid_view: HexGridView, coordinate_label: string, ctx: CanvasRenderingContext2D) {
+        //x and y are the center pixel positions of the hexagon
+        if (grid_view.player_view && !hex.player_visible) {
             return
         }
-        let color = TERRAIN_COLORS['empty']
+        let color = TERRAIN_INFO['empty']['color']
         if (grid_view.show_terrain) {
-            color = TERRAIN_COLORS[hexagon.terrain]
+            color = TERRAIN_INFO[hex.terrain]['color']
         }
         DrawHexagon(x, y, grid_view.scale, color, ctx)
+        if (grid_view.show_terrain) {
+            if ('texture' in TERRAIN_INFO[hex.terrain]){
+                ctx.drawImage(TERRAIN_INFO[hex.terrain]['texture'], x - grid_view.scale * 0.5, y - grid_view.scale * 0.5, grid_view.scale, grid_view.scale)
+            }
+        }
         if (grid_view.show_coordinates) {
             ctx.font = `${Math.floor(0.3*grid_view.scale)}px Arial`;
             ctx.fillStyle = 'black'
             ctx.fillText(coordinate_label, x-grid_view.scale*0.4, y+grid_view.scale*0.4*HEX_HEIGHT)
         }
-        if (hexagon.settlement != null) {
+        if (hex.settlement != null) {
             if (grid_view.show_settlements) {
-                ctx.drawImage(SETTLEMENTS[hexagon.settlement.type]['icon'], x - grid_view.scale * 0.4, y - grid_view.scale * 0.4, grid_view.scale, grid_view.scale)
+                ctx.drawImage(SETTLEMENTS[hex.settlement.type]['icon'], x - grid_view.scale * 0.4, y - grid_view.scale * 0.4, grid_view.scale*0.8, grid_view.scale*0.8)
             }
             if (grid_view.show_settlement_names) {
                 ctx.font = `${Math.floor(0.3*grid_view.scale)}px Arial`;
                 ctx.fillStyle = 'black'
-                ctx.fillText(hexagon.settlement.name, x-grid_view.scale*0.5, y-grid_view.scale*0.3*HEX_HEIGHT)
+                ctx.fillText(hex.settlement.name, x-grid_view.scale*0.5, y-grid_view.scale*0.3*HEX_HEIGHT)
             }
+        }
+        for (let direction = 0; direction < hex.rivers.length; direction ++) {
+            if (!hex.rivers[direction]){continue}
+            if (TERRAIN_INFO[hex.terrain]['ocean']){
+                break
+            }
+            ctx.beginPath()
+            ctx.moveTo(x, y)s
+            ctx.lineTo(x + grid_view.scale * HEX_HEIGHT/2 * Math.sin(direction/3 * Math.PI),
+                y - grid_view.scale * HEX_HEIGHT/2 * Math.cos(direction/3 * Math.PI))
+            ctx.closePath()
+            ctx.strokeStyle = 'blue'
+            ctx.stroke()
         }
     }
     function DrawHexagon(x: number, y: number, s: number, color: string, ctx: CanvasRenderingContext2D, border_color: string='black'): void {
@@ -124,16 +172,16 @@ namespace HexDisplay {
         first_is_up: boolean
     }
 
-    function EmptyHexGrid(n_rows: number, n_cols: number): HexGrid {
+    function EmptyHexGrid(n_rows: number, n_cols: number, offset: [number, number] = [0, 0]): HexGrid {
         let array: Hex[][] = Array<Hex[]>(0)
         for (let row = 0; row < n_rows; row++) {
             let new_row = Array<Hex>(0);
             for (let col = 0; col < n_cols; col++) {
-                new_row = new_row.concat([EmptyHex()]);
+                new_row = new_row.concat([EmptyHex([col + offset[0], row + offset[1]])]);
             }
             array = array.concat([new_row])
         }
-        return {'array': array, 'offset': [0, 0], 'first_is_up': true};
+        return {'array': array, 'offset': offset, 'first_is_up': true};
     }
 
     function RandomHexGrid(n_rows: number, n_cols: number): HexGrid {
@@ -153,10 +201,11 @@ namespace HexDisplay {
             array.offset[1] -= n_rows;
         }
         if (n_rows > 0) {
-            let new_rows = EmptyHexGrid(n_rows, array.array[0].length, ).array;
             if (top) {
+                let new_rows = EmptyHexGrid(n_rows, array.array[0].length, array.offset).array;
                 array.array = new_rows.concat(array.array);
             } else {
+                let new_rows = EmptyHexGrid(n_rows, array.array[0].length, [array.offset[0], shape(array.array)[1]+array.offset[1]]).array;
                 array.array = array.array.concat(new_rows)
             }
 
@@ -174,11 +223,14 @@ namespace HexDisplay {
             array.offset[0] -= n_cols
         }
         if (n_cols > 0) {
+            let array_width = shape(array.array)[0]
             for (let i = 0; i < array.array.length; i++) {
                 if (left) {
-                    array.array[i] = Array<Hex>(n_cols).fill(EmptyHex()).concat(array.array[i]);
+                    let new_row = EmptyHexGrid(1, n_cols, [array.offset[0], array.offset[1] + i])
+                    array.array[i] = new_row.array[0].concat(array.array[i]);
                 } else {
-                    array.array[i] = array.array[i].concat(Array<Hex>(n_cols).fill(EmptyHex()));
+                    let new_row = EmptyHexGrid(1, n_cols, [array_width + array.offset[0], array.offset[1]+i])
+                    array.array[i] = array.array[i].concat(new_row.array[0]);
                 }
             }
         } else if (n_cols < 0) {
@@ -190,27 +242,28 @@ namespace HexDisplay {
                 }
             }
         }
+        console.log(array)
     }
 
     function DisplayGrid(grid: HexGrid, view: HexGridView, canvas: HTMLCanvasElement): void {
         clearHexCanvas()
         for (let row = 0; row < grid.array.length; row++) {
             for (let col = 0; col < grid.array[0].length; col++) {
-                DisplayHex(grid, {'col': col, 'row': row}, view, canvas)
+                DisplayHex(grid, grid.array[row][col], view, canvas)
             }
         }
     }
 
-    function DisplayHex(grid: HexGrid, coordinates: NormalCoord, view: HexGridView, canvas: HTMLCanvasElement, clear_first: boolean=false): void {
+    function DisplayHex(grid: HexGrid, hex: Hex, view: HexGridView, canvas: HTMLCanvasElement, clear_first: boolean=false): void {
         let ctx = canvas.getContext('2d')
-        let x_center = 3 / 2 * coordinates.col * view.scale + view.offset_x;
-        let offset_down = (Boolean(coordinates.col % 2) == grid.first_is_up)
-        let y_center = HEX_HEIGHT * view.scale * (coordinates.row + 0.5 * +offset_down) + view.offset_y
-        let coordinate_label = (coordinates.col + grid.offset[0]) + ', ' + (coordinates.row + grid.offset[1])
+        let x_center = 3 / 2 * hex.position.col * view.scale + view.offset_x;
+        let offset_down = (Boolean(hex.position.col % 2) == grid.first_is_up)
+        let y_center = HEX_HEIGHT * view.scale * (hex.position.row + 0.5 * +offset_down) + view.offset_y
+        let coordinate_label = hex.position.col + ', ' + (hex.position.row)
         if (clear_first) {
             DrawHexagon(x_center, y_center, view.scale, '#ffffff', ctx, '#ffffff');
         }
-        DrawHex(x_center, y_center, grid.array[coordinates.row][coordinates.col], view, coordinate_label, ctx)
+        DrawHex(x_center, y_center, hex, view, coordinate_label, ctx)
     }
 
     type NormalCoord = {
@@ -314,8 +367,37 @@ namespace HexDisplay {
         return pixel_to_normal(pt)
     }
 
-    function shape(array: any[][]) {
+    function shape(array: any[][]): [number, number] {
         return [array[0].length, array.length];
+    }
+
+    function movementDirection(from_hex: Hex, to_hex: Hex): [number, number] {
+        let delta_x = to_hex.position.col - from_hex.position.col;
+        let delta_y = to_hex.position.row - from_hex.position.row - (from_hex.position.col % 2);
+        if (delta_x == 0){
+            if (from_hex.position.row == to_hex.position.row){
+                return null
+            }
+            if (from_hex.position.row < to_hex.position.row){
+                return [3, 0]
+            } else {
+                return [0, 3]
+            }
+        }
+        if (delta_x == -1 && delta_y == -1) {
+            return [5, 2]
+        }
+        if (delta_x == 1 && delta_y == -1) {
+            return [1, 4]
+        }
+        if (delta_x == -1 && delta_y == 0) {
+            return [4, 1]
+        }
+        if (delta_x == 1 && delta_y == 0) {
+            return [2, 5]
+        }
+
+        return null
     }
 
     type HexGridView = {
@@ -335,12 +417,26 @@ namespace HexDisplay {
             'show_settlement_names': true}
     }
 
-    function paintHex(hex, coord) {
+    function paintHex(hex) {
         hex[CURRENT_BRUSH.property] = CURRENT_BRUSH.value
         DisplayGrid(HEX_GRID, VIEW, CANVAS)
     }
 
-    function addSettlement(hex, coord) {
+    function paintRiver(hex) {
+        if(hex == PREVIOUS_HEX){return}
+        let movement_direction = movementDirection(PREVIOUS_HEX, hex);
+        if (movement_direction == null){return}
+        if (CURRENT_BRUSH.value == "clear") {
+            PREVIOUS_HEX['rivers'][movement_direction[0]] = false;
+            hex['rivers'][movement_direction[1]] = false;
+        } else {
+            PREVIOUS_HEX['rivers'][movement_direction[0]] = true;
+            hex['rivers'][movement_direction[1]] = true;
+        }
+        DisplayGrid(HEX_GRID, VIEW, CANVAS)
+    }
+
+    function addSettlement(hex) {
         if(CURRENT_BRUSH.value == 'delete'){
             hex.settlement = null
             DisplayGrid(HEX_GRID, VIEW, CANVAS)
@@ -443,8 +539,8 @@ namespace HexDisplay {
     function addTerrainButtons() {
         //I am just keeping this around to see how to programatically generate buttons
         let draw_button_div = document.getElementById("draw_buttons");
-        for (let i = 0; i < Object.keys(TERRAIN_COLORS).length; i++) {
-            let terrain_type = Object.keys(TERRAIN_COLORS)[i];
+        for (let i = 0; i < Object.keys(TERRAIN_INFO).length; i++) {
+            let terrain_type = Object.keys(TERRAIN_INFO)[i];
             let button_name = `${terrain_type}_button`
             let button = document.createElement("BUTTON");
             let text = document.createTextNode(terrain_type)
@@ -457,15 +553,6 @@ namespace HexDisplay {
                 CURRENT_CURSOR.function = paintHex;
                 CURRENT_CURSOR.trigger_on_move = true;
             });
-        }
-    }
-
-    function populateTerrainList(){
-        let dropdown = $("#terrain_dropdown")
-        dropdown.empty()
-        for (let i = 0; i < Object.keys(TERRAIN_COLORS).length; i++) {
-            let terrain_type = Object.keys(TERRAIN_COLORS)[i];
-            dropdown.append(`<option value="${terrain_type}">${terrain_type}</option>`)
         }
     }
 
@@ -526,19 +613,37 @@ namespace HexDisplay {
         )
     }
 
+
     function editable(): boolean{
         let edit_checkbox = <HTMLInputElement>document.getElementById('editable_switch')
         return edit_checkbox.checked
     }
 
+    let CANVAS = <HTMLCanvasElement>document.getElementById("hexcanvas");
     let CURRENT_CURSOR: Cursor = {'function': null, 'trigger_on_move': false, 'edits': false};
     let CURRENT_BRUSH: Brush = {'property': null, 'value': false}
     let HEX_GRID = EmptyHexGrid(20, 30)
-    let CANVAS = <HTMLCanvasElement>document.getElementById("hexcanvas");
     let VIEW = DefaultView(30)
-    DisplayGrid(HEX_GRID, VIEW, CANVAS)
-    populateSaveList();
-    populateTerrainList()
+    let TERRAIN_INFO: any;
+    let PREVIOUS_HEX: Hex | null = null;
+
+    async function loadJSONFile() {
+        try {
+            const response = await fetch('../static/info/terrain.json')
+            TERRAIN_INFO = await response.json();
+            for (let k in TERRAIN_INFO) {
+                if ('texture' in TERRAIN_INFO[k]){
+                    let new_image = new Image()
+                    new_image.src = 'static/images/terrain/' + TERRAIN_INFO[k]['texture'] + '.svg'
+                    TERRAIN_INFO[k]['texture'] = new_image
+                }
+            }
+        } catch (error){
+            console.error("error loading JSON file:", error)
+        }
+    }
+    loadJSONFile()
+    populateSaveList()
     populateSettlementList()
     populateMobSetNames()
     populateEnvironmentList()
@@ -599,6 +704,12 @@ namespace HexDisplay {
         if(CURRENT_CURSOR.function != null){
             CURRENT_CURSOR.function(hex, coordinates)
         }
+        PREVIOUS_HEX = null;
+    })
+
+    document.getElementById('hexcanvas').addEventListener('mousedown', function(event){
+        let coordinates = ClickCoordinates(event)
+        PREVIOUS_HEX = HEX_GRID.array[coordinates.row][coordinates.col];
     })
 
     document.getElementById('hexcanvas').addEventListener('mousemove', function(event) {
@@ -617,9 +728,11 @@ namespace HexDisplay {
         }
         let hex = HEX_GRID.array[coordinates.row][coordinates.col];
         if (hex == null){return}
+        if (hex == PREVIOUS_HEX){return}
         if(CURRENT_CURSOR.function != null){
             CURRENT_CURSOR.function(hex, coordinates)
         }
+        PREVIOUS_HEX = hex;
     })
 
     document.getElementById('terrain_dropdown').addEventListener('change', function(){
@@ -627,6 +740,15 @@ namespace HexDisplay {
         CURRENT_BRUSH.property = 'terrain'
         CURRENT_BRUSH.value = terrain_type
         CURRENT_CURSOR.function = paintHex
+        CURRENT_CURSOR.trigger_on_move = true
+        CURRENT_CURSOR.edits = true
+    })
+
+    document.getElementById('river_dropdown').addEventListener('change', function(){
+        let river_type = (document.getElementById('river_dropdown') as HTMLSelectElement).value;
+        CURRENT_BRUSH.property = 'river'
+        CURRENT_BRUSH.value = river_type
+        CURRENT_CURSOR.function = paintRiver
         CURRENT_CURSOR.trigger_on_move = true
         CURRENT_CURSOR.edits = true
     })
@@ -696,16 +818,17 @@ namespace HexDisplay {
                 'difficulty': difficulty,
                 'primary_enemy': primary_enemy},
             function(data, status){
-                console.log(data)
                 let div = document.getElementById("encounter_display")
                 div.replaceChildren()
                 div.innerHTML += data
             }
-        )
+        ).fail(function(data, error){
+            alert(data['responseText']);
+        })
     })
 
     document.getElementById('hex_info').addEventListener('click', function(){
-        CURRENT_CURSOR.function = function(hex, coord){
+        CURRENT_CURSOR.function = function(hex){
             console.log(hex)
         }
         CURRENT_CURSOR.trigger_on_move = false
@@ -714,7 +837,7 @@ namespace HexDisplay {
 
     document.getElementById('hex_link').addEventListener('click', function(){
         CURRENT_CURSOR.function = function(hex, coord: NormalCoord){
-            let url = `http://localhost:8800/doku.php?id=hex:hex_${coord.col+HEX_GRID.offset[0]}_${coord.row+HEX_GRID.offset[1]}`
+            let url = `http://192.168.4.106:8800/doku.php?id=hex:hex_${coord.col+HEX_GRID.offset[0]}_${coord.row+HEX_GRID.offset[1]}`
             window.open(url, '_blank')
         }
         CURRENT_CURSOR.trigger_on_move = false
@@ -750,6 +873,52 @@ namespace HexDisplay {
             }
         )
         populateSaveList()
+    })
+
+    document.getElementById('new_map').addEventListener('click', function(){
+        if(!editable()){
+            return
+        }
+        document.getElementById('newMapModal').style.display = "block"
+        document.getElementById('overlay').style.display = "block"
+    })
+
+    function hideNewMapModal(){
+        document.getElementById('newMapModal').style.display = "none";
+        document.getElementById('overlay').style.display = "none";
+        (document.getElementById('n_cols_input') as HTMLInputElement).value = "10";
+        (document.getElementById('n_rows_input') as HTMLInputElement).value = "10";
+    }
+
+    document.getElementById('newMapCancelButton').addEventListener('click', function(){
+        hideNewMapModal()
+    })
+
+    document.getElementById("newMapSubmitButton").addEventListener("click", function(){
+
+        let n_cols = Number((document.getElementById('n_cols_input') as HTMLInputElement).value);
+        let n_rows = Number((document.getElementById('n_rows_input') as HTMLInputElement).value);
+        HEX_GRID = EmptyHexGrid(n_rows, n_cols)
+        DisplayGrid(HEX_GRID, VIEW, CANVAS)
+        hideNewMapModal();
+    })
+
+    document.getElementById('test').addEventListener('click', function(){
+        console.log(movementDirection(HEX_GRID.array[2][2], HEX_GRID.array[2][2]))
+        console.log(movementDirection(HEX_GRID.array[2][2], HEX_GRID.array[3][2]))
+
+        console.log('Odd Column')
+        console.log(movementDirection(HEX_GRID.array[0][1], HEX_GRID.array[1][2]))
+        console.log(movementDirection(HEX_GRID.array[0][1], HEX_GRID.array[0][2]))
+        console.log(movementDirection(HEX_GRID.array[0][1], HEX_GRID.array[0][0]))
+        console.log(movementDirection(HEX_GRID.array[0][1], HEX_GRID.array[1][0]))
+
+        console.log('Even Column')
+        console.log(movementDirection(HEX_GRID.array[2][4], HEX_GRID.array[2][5]))
+        console.log(movementDirection(HEX_GRID.array[2][4], HEX_GRID.array[1][5]))
+        console.log(movementDirection(HEX_GRID.array[2][4], HEX_GRID.array[1][3]))
+        console.log(movementDirection(HEX_GRID.array[2][4], HEX_GRID.array[2][3]))
+
     })
 }
 

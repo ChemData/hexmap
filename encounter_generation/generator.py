@@ -77,7 +77,7 @@ class Group:
         mob_count = count_values(self.mobs)
         output = ''
         for mob, count in mob_count.items():
-            link = mob.five_e_tools_url
+            link = mob.url
             if link is None:
                 output += f'<p>{count} x {mob.name.capitalize()}</p>\n'
             else:

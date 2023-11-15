@@ -3,13 +3,17 @@ import json
 import flask
 from flask import Flask, render_template, jsonify, redirect, url_for, request, after_this_request
 from encounter_generation import generator
+from map_update import update_map
 
 app = Flask(__name__)
+
+with open("static/info/terrain.json", 'r') as f:
+    TERRAIN = json.load(f)
 
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', terrain_list=[(key, value['display_name']) for key, value in TERRAIN.items()])
 
 
 @app.route('/save', methods=['POST'])
@@ -29,8 +33,9 @@ def load_map():
     save_name = data['save_name']
     try:
         with open(f'storage/{save_name}.txt', 'r') as f:
-            map_string = f.read()
-        return jsonify(map_string)
+            map_data = json.load(f)
+        updated_map = update_map(map_data)
+        return jsonify(json.dumps(updated_map))
     except FileNotFoundError:
         return jsonify(False)
 
@@ -63,6 +68,8 @@ def encounter():
     env_type = data['environment_type']
     if env_type == "":
         env_type = None
+    if primary_enemy is None and env_type is None:
+        return 'You must select either an environment or primary enemy.', 400
     new_encounter, difficulty, mob_type = generator.hex_encounter(data['difficulty'], party, primary_enemy, environment_type=env_type)
     encounter_html = new_encounter.html_with_links()
     encounter_html = f'<h3>{difficulty.capitalize()} {mob_type.capitalize()}</h3>\n' + encounter_html
@@ -83,6 +90,12 @@ def environment_set_names():
     set_names.sort(key=lambda x: x[1])
     output = [{'value': x[0], 'name': x[1]} for x in set_names]
     return jsonify(output)
+
+
+@app.route('/terrain', methods=['GET'])
+def terrain():
+    data = dict([(x['id'], x['color']) for x in TERRAIN])
+    return jsonify(data)
 
 
 if __name__ == '__main__':

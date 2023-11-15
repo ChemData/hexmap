@@ -18,10 +18,35 @@
     <button type="button" id="delete">Delete</button>
     <select id="saved_maps_dropdown">
     </select>
+    <button type="button" id="new_map">New</button>
+    <button type="button" id="test">Test</button>
   </div>
+<div id="newMapModal" class="modal">
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <h2>Enter Data</h2>
+    <label for="n_cols_input">Columns:</label>
+    <input type="number" id="n_cols_input">
+    <label for="n_rows_input">Rows:</label>
+    <input type="number" id="n_rows_input">
+    <button id="newMapSubmitButton">Submit</button>
+    <button id="newMapCancelButton">Cancel</button>
+  </div>
+</div>
+<div id="overlay" class="overlay"></div>
+
   <div id="draw_buttons">
       <label for="terrain_dropdown">Terrain Type</label>
-      <select id="terrain_dropdown"></select>
+      <select id="terrain_dropdown">
+          {% for t in terrain_list %}
+          <option value={{t[0]}}>{{t[1]}}</option>
+          {% endfor %}
+      </select>
+      <label for="river_dropdown">River</label>
+      <select id="river_dropdown">
+          <option value="river">River</option>
+          <option value="clear">Delete</option>
+      </select>
       <label for="settlement_dropdown">Settlement</label>
       <select id="settlement_dropdown"></select>
       <label for="visibility_dropdown">Visibility</label>
