@@ -10,10 +10,20 @@ app = Flask(__name__)
 with open("static/info/terrain.json", 'r') as f:
     TERRAIN = json.load(f)
 
+with open("static/info/rivers.json", 'r') as f:
+    RIVERS = json.load(f)
+
+with open("static/info/roads.json", 'r') as f:
+    ROADS = json.load(f)
+
 
 @app.route('/')
 def index():
-    return render_template('index.html', terrain_list=[(key, value['display_name']) for key, value in TERRAIN.items()])
+    return render_template(
+        'index.html',
+        terrain_list=[(key, value['display_name']) for key, value in TERRAIN.items()],
+        river_list=[(key, key.title()) for key in RIVERS.keys()],
+        road_list=[(key, key.title()) for key in ROADS.keys()])
 
 
 @app.route('/save', methods=['POST'])
@@ -95,6 +105,14 @@ def environment_set_names():
 @app.route('/terrain', methods=['GET'])
 def terrain():
     data = dict([(x['id'], x['color']) for x in TERRAIN])
+    return jsonify(data)
+
+
+@app.route('/json_data', methods=['GET'])
+def json_data():
+    data_type = request.form['type']
+    with open(f'static/{data_type}.json', 'r') as f:
+        data = json.load(f)
     return jsonify(data)
 
 

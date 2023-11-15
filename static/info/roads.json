@@ -1,0 +1,14 @@
+{
+  "highway": {
+    "width": 0.1,
+    "color": "#a6a6a6"
+  },
+  "road": {
+    "width": 0.04,
+    "color": "#c4b28f"
+  },
+  "trail": {
+    "width": 0.02,
+    "color": "#734b41"
+  }
+}
