@@ -5,15 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" type="text/css" href="static/css/styles.css" />
   <title>Hexmap display</title>
-
 </head>
 <header>
   <div id="nav_buttons">
-    <button type="button" id="add_left">Add Left</button>
-    <button type="button" id="add_right">Add Right</button>
-    <button type="button" id="add_top">Add Top</button>
-    <button type="button" id="add_bottom">Add Bottom</button>
-    <button type="button" id="save">Save</button>
+  <button type="button" id="save">Save</button>
     <button type="button" id="load">Load</button>
     <button type="button" id="delete">Delete</button>
     <select id="saved_maps_dropdown">
@@ -107,7 +102,19 @@
     </div>
 </header>
 <body>
-  <canvas id="hexcanvas" width="1000" height="650"></canvas>
+    <div>
+        <button type="button" id="add_top">+</button>
+    </div>
+    <div>
+        <button type="button" id="add_left">+</button>
+        <canvas id="hexcanvas" width="1000" height="650"></canvas>
+        <button type="button" id="add_right">+</button>
+    </div>
+    <div>
+        <button type="button" id="add_bottom">+</button>
+    </div>
+
+
   <script src="../static/js/code.jquery.com_jquery-3.7.0.js"></script>
   <script type="module" src="../static/js/hexagons.js"></script>
 </body>
