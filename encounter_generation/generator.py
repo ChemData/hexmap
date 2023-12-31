@@ -73,15 +73,25 @@ class Group:
     def __len__(self):
         return len(self.mobs)
 
-    def html_with_links(self):
+    def html_with_links(self, random_hp=False):
         mob_count = count_values(self.mobs)
-        output = ''
+        output = []
         for mob, count in mob_count.items():
+            print(random_hp)
+            if random_hp:
+                rolls = [mob.rolled_hp() for _ in range(count)]
+                hp_str = f' hp = {rolls}'
+                print('random', hp_str)
+            else:
+                hp_str = ''
+                print('not random', hp_str)
             link = mob.url
             if link is None:
-                output += f'<p>{count} x {mob.name.capitalize()}</p>\n'
+                output.append(f'<p>{count} x {mob.name.capitalize()+ hp_str}</p>')
             else:
-                output += f'<p>{count} x <a href="{link}" target="_blank">{mob.name.capitalize()}</a></p>\n'
+                output.append(f'<p>{count} x <a href="{link}" target="_blank">{mob.name.capitalize()}</a>{hp_str}</p>')
+            output.append('\n')
+        output = ''.join(output)
         output = output[:-1]
         return output
 
@@ -105,16 +115,19 @@ def unique_group(
     if min_cr is not None:
         mobs = [mob for mob in mobs if mob.num_cr >= to_numeric_cr(min_cr)]
     redundant_generations = 0
-    while redundant_generations < 10:
-        new_group = add_mobs(Group(), mobs, min_val, max_val, max_num)
-        if new_group not in existing_groups:
-            return new_group
+    while redundant_generations < 500:
+        try:
+            new_group = add_mobs(Group(), mobs, min_val, max_val, max_num)
+            if new_group not in existing_groups:
+                return new_group
+        except NoLegalGroups:
+            pass
         redundant_generations += 1
     raise NoUniqueGroup
 
 
 def add_mobs(group: Group, mobs: List[Mob], min_val, max_val, max_num: Optional[int]=None):
-    if max_num is not None and len(group) >= max_num:
+    if max_num is not None and len(group) > max_num:
         raise NoLegalGroups
     options = copy(mobs)
     if group.xp_total >= min_val:
@@ -128,11 +141,8 @@ def add_mobs(group: Group, mobs: List[Mob], min_val, max_val, max_num: Optional[
         if new_group.xp_total > max_val:
             continue
         else:
-            try:
-                complete_group = add_mobs(new_group, mobs, min_val, max_val, max_num)
-                return complete_group
-            except NoLegalGroups:
-                continue
+            complete_group = add_mobs(new_group, mobs, min_val, max_val, max_num)
+            return complete_group
     raise NoLegalGroups
 
 
