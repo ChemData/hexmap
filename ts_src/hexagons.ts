@@ -1,55 +1,6 @@
 namespace HexDisplay {
     let HEX_HEIGHT = 3 ** 0.5
 
-    let SETTLEMENTS = {
-        'city': {
-            'name': 'City',
-            'icon_path': 'city.svg'
-        },
-        'village': {
-            'name': 'Village',
-            'icon_path': 'village.svg'
-        },
-        'monster': {
-            'name': 'Singular Monster',
-            'icon_path': 'monster.svg'
-        },
-        'monster_den': {
-            'name': 'Monster Den',
-            'icon_path': 'monster_den.svg'
-        },
-        'obelisk': {
-            'name': 'Obelisk',
-            'icon_path': 'obelisk.svg'
-        },
-        'wildfolk_camp': {
-            'name': 'Wildfolk Camp',
-            'icon_path': 'wildfolk_camp.svg'
-        },
-        'bandit_camp': {
-            'name': 'Bandit Camp',
-            'icon_path': 'bandit_camp.svg'
-        },
-        'friendly_beast': {
-            'name': 'Friendly Beast',
-            'icon_path': 'friendly_beast.svg'
-        },
-        'anomaly': {
-            'name': 'Anomaly',
-            'icon_path': 'anomaly.svg'
-        },
-        'retreat': {
-            'name': 'Retreat',
-            'icon_path': 'retreat.svg'
-        },
-    }
-
-    for (let k in SETTLEMENTS) {
-        let new_image = new Image()
-        new_image.src = 'static/images/' + SETTLEMENTS[k]['icon_path']
-        SETTLEMENTS[k]['icon'] = new_image
-    }
-
     type Cursor = {
         function: (Function | null)
         trigger_on_move: boolean
@@ -675,12 +626,29 @@ namespace HexDisplay {
         }
     }
 
+    async function loadSettlements(){
+        try {
+            const response = await fetch('../static/info/settlements.json')
+            SETTLEMENTS = await response.json();
+            for (let k in SETTLEMENTS) {
+                let new_image = new Image()
+                new_image.src = 'static/images/' + SETTLEMENTS[k]['icon_path']
+                SETTLEMENTS[k]['icon'] = new_image
+            }
+        } catch (error){
+            console.error("error loading JSON file:", error)
+        }
+    }
+
 
     loadTerrain()
     let RIVERS = {};
     loadRivers();
     let ROADS = {};
     loadRoads();
+    let SETTLEMENTS = {};
+    loadSettlements();
+
     populateSaveList()
     populateSettlementList()
     populateMobSetNames()

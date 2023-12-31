@@ -1,7 +1,7 @@
 from json import load, loads, dump
 from typing import Sequence, Optional
 import os
-from encounter_generation.utils import to_numeric_cr
+import encounter_generation.utils as utils
 
 XP_AMOUNTS = {
     '0':10, '1/8':25, '1/4':50, '1/2':100, '1':200, '2':450, '3':700, '4':1100, '5': 1800, '6': 2300,
@@ -34,7 +34,7 @@ class Mob:
     def __init__(self, Name, CR, **kwargs):
         self.name = Name
         self.cr = str(CR)
-        self.num_cr = to_numeric_cr(CR)
+        self.num_cr = utils.to_numeric_cr(CR)
         self.xp = XP_AMOUNTS[str(CR)]
         self.stat_block = kwargs
 
@@ -186,6 +186,14 @@ class Mob:
         mod = (val - 10) // 2
         return f"{val}({'+' if mod >= 0 else ''}{mod})"
 
+    def rolled_hp(self):
+        try:
+            dice_to_roll = self.stat_block['HP']['Notes']
+        except KeyError:
+            return self.stat_block['HP']['Value']
+        dice_to_roll = dice_to_roll[1:-1]
+        return utils.roll_dice(dice_to_roll)
+
 
 def _load_mobs() -> dict[str, Mob]:
     if not os.path.exists('assets/mob_data/stat_blocks/mm_monsters.json'):
@@ -224,6 +232,6 @@ with open('assets/mob_data/mob_sets.json', 'r') as f:
     MOB_SETS: dict[str, MobSet] = {}
     for set_key, value in _mob_sets.items():
         set_name = value['name']
-        set_mobs = [MOBS[mob_name] for mob_name in value['mobs']]
+        set_mobs = [MOBS[mob_name] for mob_name in value['mobs'] if mob_name in MOBS]
         MOB_SETS[set_key] = MobSet(set_name, set_mobs)
 

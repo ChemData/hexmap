@@ -1,11 +1,12 @@
 import os
 import json
-import flask
-from flask import Flask, render_template, jsonify, redirect, url_for, request, after_this_request
+from flask import Flask, render_template, jsonify, request, make_response
+from flask_cors import CORS
 from encounter_generation import generator
 from map_update import update_map
 
 app = Flask(__name__)
+CORS(app)
 
 with open("static/info/terrain.json", 'r') as f:
     TERRAIN = json.load(f)
@@ -72,16 +73,35 @@ def delete_save():
 def encounter():
     data = request.args
     party = int(data['party_size'])*[int(data['party_level'])]
-    primary_enemy = data['primary_enemy']
+    primary_enemy = data.get('primary_enemy', '')
     if primary_enemy == "":
         primary_enemy = None
-    env_type = data['environment_type']
+    env_type = data.get('environment_type', '')
     if env_type == "":
         env_type = None
+    max_enemies = data.get('max_enemies', '')
+    if max_enemies == "":
+        max_enemies = None
+    else:
+        max_enemies = int(max_enemies)
+    min_cr = data.get('min_cr', '0')
+    roll_hp = data.get('roll_hp', True)
+    if isinstance(roll_hp, str):
+        roll_hp = roll_hp == 'true'
     if primary_enemy is None and env_type is None:
-        return 'You must select either an environment or primary enemy.', 400
-    new_encounter, difficulty, mob_type = generator.hex_encounter(data['difficulty'], party, primary_enemy, environment_type=env_type)
-    encounter_html = new_encounter.html_with_links()
+        response = make_response(jsonify({"error": 'You must select either an environment or primary enemy.'}), 460)
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        return response
+    try:
+        new_encounter, difficulty, mob_type = generator.hex_encounter(
+            data['difficulty'], party, primary_enemy, environment_type=env_type, max_mobs=max_enemies, min_cr=min_cr)
+    except generator.NoUniqueGroup as e:
+        response = make_response(jsonify({"error": str(e)}), 461)
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        return response
+    encounter_html = new_encounter.html_with_links(roll_hp)
     encounter_html = f'<h3>{difficulty.capitalize()} {mob_type.capitalize()}</h3>\n' + encounter_html
     return jsonify(encounter_html)
 

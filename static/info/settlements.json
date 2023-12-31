@@ -1,0 +1,42 @@
+{
+        "city": {
+            "name": "City",
+            "icon_path": "city.svg"
+        },
+        "village": {
+            "name": "Village",
+            "icon_path": "village.svg"
+        },
+        "monster": {
+            "name": "Singular Monster",
+            "icon_path": "monster.svg"
+        },
+        "monster_den": {
+            "name": "Monster Den",
+            "icon_path": "monster_den.svg"
+        },
+        "obelisk": {
+            "name": "Obelisk",
+            "icon_path": "obelisk.svg"
+        },
+        "wildfolk_camp": {
+            "name": "Wildfolk Camp",
+            "icon_path": "wildfolk_camp.svg"
+        },
+        "bandit_camp": {
+            "name": "Bandit Camp",
+            "icon_path": "bandit_camp.svg"
+        },
+        "friendly_beast": {
+            "name": "Friendly Beast",
+            "icon_path": "friendly_beast.svg"
+        },
+        "anomaly": {
+            "name": "Anomaly",
+            "icon_path": "anomaly.svg"
+        },
+        "retreat": {
+            "name": "Retreat",
+            "icon_path": "retreat.svg"
+        }
+    }
